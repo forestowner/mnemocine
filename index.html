@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mnemocine — reference practice</title>
+<meta name="description" content="Three images from the open archives, side by side. Refresh for a new set.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1 class="mark">Mnemocine</h1>
+  <p class="sub">three images from the open archives</p>
+  <button id="about-toggle" class="about-toggle" type="button" aria-expanded="false" aria-controls="about">about</button>
+  <div class="bar-actions">
+    <span class="hint"><kbd>space</kbd> new set &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> history</span>
+    <button id="hist-back" class="nav" type="button" title="Previous set (&larr;)">&lsaquo;</button>
+    <button id="hist-fwd" class="nav" type="button" title="Next set (&rarr;)">&rsaquo;</button>
+    <button id="download" class="action" type="button" title="Save the current three as one image">Download</button>
+    <button id="new-set" class="action" type="button">New set</button>
+  </div>
+</header>
+
+<aside class="about" id="about" hidden>
+  <p><strong>Bisociation</strong> is the act of perceiving an idea or
+  situation in two self-consistent but habitually incompatible frames of
+  reference. The term was coined by Arthur Koestler in
+  <cite>The Act of Creation</cite> (1964), which argues that a single
+  mental mechanism underlies humour, scientific discovery, and art: the
+  collision of two unrelated matrices of thought.</p>
+  <p>The <strong>Mnemosyne Atlas</strong> (<cite>Bilderatlas
+  Mnemosyne</cite>) was Aby Warburg's unfinished picture atlas
+  (1924–1929): some 63 panels of black cloth holding nearly a thousand
+  photographs, reproductions, press clippings, and stamps, pinned and
+  endlessly rearranged so that meaning emerged from the intervals
+  between images rather than from any image alone. Mnemosyne — Greek
+  memory, mother of the Muses — named his atlas, and with
+  <em>cine</em>, cinema in Spanish, it names this tool: memory dealt as
+  frames.</p>
+  <p>Mnemocine deals three images from the open archives side by side — a
+  practice exercise in <em>forced connections</em>: take references that
+  don't belong together and find what binds them. A palette, a gesture, a
+  story, an art direction. For designers, artists, photographers, and
+  anyone who thinks with images.</p>
+  <p>No account, no subscription, no tracking, no onboarding. Practice
+  tools should be accessible — and the open archives deserve the visits.</p>
+  <p>Inspired by <a href="https://www.instagram.com/russellrjones94/"
+  target="_blank" rel="noopener">@russellrjones94</a>'s Random Image
+  Selector, which shuffles a folder on your own computer. Mnemocine is
+  the web cousin: no room to hoard thousands of references? Draw from
+  the archives instead.</p>
+  <p>Downloads embed pixels only from archives that permit it — the Met
+  and Cleveland block this, so their panels export as linked text cards
+  (their images can still be saved by hand from the source page). With a
+  3D viewer open, downloads capture your current camera angle.</p>
+</aside>
+
+<main class="row" id="row">
+  <noscript><p class="notice">Mnemocine needs JavaScript to fetch images from the archives.</p></noscript>
+</main>
+
+<template id="slot-template">
+  <section class="slot" data-state="loading">
+    <div class="slot-bar">
+      <div class="slot-controls">
+        <span class="cat-wrap"><select class="sel cat"></select></span>
+        <span class="cat-wrap"><select class="sel src"></select></span>
+      </div>
+      <button class="rotate3d" type="button" hidden aria-pressed="false"
+        title="Rotate this model — loads the Sketchfab viewer">3D</button>
+      <button class="reroll" type="button" title="New image in this slot">&#x21bb;</button>
+    </div>
+    <a class="frame" target="_blank" rel="noopener"
+       title="scroll to zoom &middot; drag to pan &middot; double-click to reset">
+      <img alt="" draggable="false" referrerpolicy="no-referrer">
+      <span class="frame-msg" hidden></span>
+    </a>
+    <div class="label">
+      <p class="plate"></p>
+      <p class="title"><a target="_blank" rel="noopener"></a></p>
+      <p class="source"></p>
+    </div>
+  </section>
+</template>
+
+<script src="config.js"></script>
+<script src="categories.js"></script>
+<script src="providers.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

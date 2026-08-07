@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Film strip negative icon from SVG Repo (www.svgrepo.com), recolored to Mnemocine's accent -->
+<svg fill="#a23c2c" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+	<rect x="149.333" y="277.333" width="213.333" height="192"/>
+	<rect x="149.333" y="42.667" width="213.333" height="192"/>
+	<rect y="213.333" width="106.667" height="85.333"/>
+	<rect x="405.333" y="213.333" width="106.667" height="85.333"/>
+	<path d="M0,448c0,11.776,9.557,21.333,21.333,21.333h85.333v-128H0V448z"/>
+	<path d="M405.333,469.333h85.333c11.797,0,21.333-9.557,21.333-21.333V341.333H405.333V469.333z"/>
+	<path d="M0,64v106.667h106.667v-128H21.333C9.557,42.667,0,52.224,0,64z"/>
+	<path d="M490.667,42.667h-85.333v128H512V64C512,52.224,502.464,42.667,490.667,42.667z"/>
+</g>
+</svg>

@@ -1,0 +1,323 @@
+/* Triptych taxonomy: practice-intent categories mapped to hand-tuned,
+   count-tested queries per archive ("recipes"). The dropdown shows the
+   groups; the recipes are the middle ground between what the user looks
+   for and what each API can actually filter.
+
+   Recipe payload shapes by provider:
+     ia  — advancedsearch subject/collection expression (wrapped by executor)
+     wm  — Wikimedia Commons search string
+     loc — Commons search string scoped to the Library of Congress category
+     met — { q, medium } for collectionapi search
+     cma — Cleveland openaccess URL params
+     si  — Smithsonian EDAN q expression (unit-scoped)
+     gdh — true (Sketchfab pool takes no query)
+     europeana — search query (dormant until a key exists)
+
+   Modern-photo policy: categories marked modern:true accept present-day
+   Commons photography (textures, atmosphere, biome — they starve without
+   it); everything else leans archival. */
+
+"use strict";
+
+const LOC_CAT = 'incategory:"Images from the Library of Congress"';
+
+const CATEGORY_GROUPS = [
+  {
+    label: "Artist",
+    cats: [
+      { id: "poses", label: "Poses & figure" },
+      { id: "anatomy", label: "Anatomy" },
+      { id: "drapery", label: "Clothing & drapery" },
+      { id: "textures", label: "Textures & materials", modern: true },
+      { id: "landscape", label: "Landscape" },
+      { id: "environments", label: "Environments & streets" },
+      { id: "interiors", label: "Interiors" },
+      { id: "sculpture", label: "Study sculpture" },
+      { id: "hardsurface", label: "Hard surface & machines" },
+      { id: "devices", label: "Devices & instruments" },
+      { id: "electronics", label: "Retro electronics", modern: true },
+      { id: "creatures", label: "Animals & creatures" },
+    ],
+  },
+  {
+    label: "Photography",
+    cats: [
+      { id: "props", label: "Props & still life" },
+      { id: "costume", label: "Costume & wardrobe" },
+      { id: "lighting", label: "Lighting" },
+      { id: "atmosphere", label: "Atmosphere & weather", modern: true },
+      { id: "biome", label: "Biome & wilderness", modern: true },
+      { id: "street", label: "Documentary & street" },
+      { id: "earlycolor", label: "Early color & photochrom" },
+      { id: "photoportraits", label: "Portrait photography" },
+    ],
+  },
+  {
+    label: "Design",
+    cats: [
+      { id: "typography", label: "Typography & lettering" },
+      { id: "posters", label: "Posters" },
+      { id: "brand", label: "Brand marks & ex libris" },
+      { id: "editorial", label: "Layout & editorial" },
+      { id: "abstract", label: "Abstract" },
+      { id: "polyhedra", label: "Polyhedra & solids" },
+      { id: "curves", label: "Curves & topology" },
+      { id: "ornament", label: "Patterns & ornament" },
+      { id: "maps", label: "Maps" },
+      { id: "charts", label: "Charts & diagrams" },
+    ],
+  },
+  {
+    label: "Archive",
+    cats: [
+      { id: "paintings", label: "Paintings" },
+      { id: "photos", label: "Photographs" },
+      { id: "portraits", label: "Portraits" },
+      { id: "manuscripts", label: "Manuscripts" },
+      { id: "architecture", label: "Architecture" },
+      { id: "botanical", label: "Botanical" },
+      { id: "objects", label: "Objects & artifacts" },
+    ],
+  },
+];
+
+const RECIPES = {
+  /* ---------- Artist ---------- */
+  poses: {
+    ia: ['subject:(dance OR dancers OR gymnastics)',
+         'subject:("figure drawing" OR "human figure" OR "life drawing")'],
+    wm: ['intitle:"figure study"', 'Muybridge locomotion', '"nude study"', 'académie nude'],
+    cma: ["type=Drawing&q=figure", "type=Drawing&q=nude"],
+    met: [{ q: "figure", medium: "Sculpture" }],
+  },
+  anatomy: {
+    ia: ['subject:(anatomy OR osteology OR "human anatomy")'],
+    wm: ['"anatomical illustration"', "écorché", "intitle:anatomy"],
+  },
+  drapery: {
+    ia: ['subject:(costume OR "fashion plates" OR drapery)'],
+    wm: ['"fashion plate"', '"drapery study"', '"costume design" drawing'],
+    met: [{ q: "dress", medium: "Costume" }],
+  },
+  textures: {
+    wm: ["intitle:texture", "peeling paint", "weathered wood surface", "rust macro"],
+    si: ['unit_code:"NMNHMINSCI"'],
+    ia: ["subject:(minerals OR geology OR petrology)"],
+  },
+  landscape: {
+    cma: ["type=Painting&q=landscape"],
+    met: [{ q: "landscape", medium: "Paintings" }],
+    wm: ['"landscape painting"', "photochrom landscape"],
+    loc: [`${LOC_CAT} intitle:landscape`],
+    ia: ["subject:(landscapes)"],
+    europeana: ['"landscape painting"'],
+  },
+  environments: {
+    wm: ["intitle:cityscape", '"street scene" painting'],
+    loc: [`${LOC_CAT} intitle:street`],
+    ia: ['subject:(streets OR cityscape OR "city views")'],
+  },
+  interiors: {
+    wm: ['"interior view"', '"church interior"', '"palace interior"'],
+    loc: [`${LOC_CAT} intitle:interior`],
+    ia: ['subject:(interiors OR "interior decoration")'],
+    met: [{ q: "interior", medium: "Paintings" }],
+    cma: ["type=Painting&q=interior"],
+  },
+  sculpture: {
+    gdh: [true],
+    met: [{ q: "figure", medium: "Sculpture" }],
+    cma: ["type=Sculpture"],
+    si: ['unit_code:"SAAM" AND object_type:"Sculpture"'],
+    wm: ['"plaster cast" sculpture', "intitle:statue"],
+  },
+  hardsurface: {
+    wm: ["patent drawing", "steam locomotive photograph", '"suit of armor"'],
+    ia: ["subject:(machinery OR locomotives OR engines)"],
+  },
+  devices: {
+    wm: ["intitle:typewriter", '"scientific instrument"', "antique camera"],
+    ia: ['subject:("scientific instruments" OR phonograph OR microscopes)'],
+  },
+  /* Smithsonian sits electronics out: NMAH search rows carry no media and
+     Cooper Hewitt's text match tested nearly empty (6 rows). */
+  electronics: {
+    /* intitle-anchored: description-text matches tested noisy here */
+    wm: ['intitle:"transistor radio"', 'intitle:"television set"',
+         'intitle:"vacuum tube"', 'intitle:"tape recorder"',
+         "intitle:oscilloscope", "intitle:synthesizer",
+         'intitle:"home computer"', "intitle:gramophone", '"rotary telephone"'],
+    loc: [`${LOC_CAT} intitle:radio`],
+    ia: ['subject:("electronics" OR "consumer electronics")'],
+    sf: ["retro tv", "vintage radio", "cassette player", "crt monitor", "synthesizer"],
+  },
+  creatures: {
+    ia: ["subject:(zoology OR ornithology OR birds OR mammals)"],
+    wm: ["zoological illustration", "taxidermy specimen", "intitle:skeleton"],
+    si: ['unit_code:"NMNHENTO"'],
+  },
+
+  /* ---------- Photography ---------- */
+  props: {
+    met: [{ q: "still life", medium: "Paintings" }],
+    cma: ["type=Painting&q=still%20life"],
+    wm: ['intitle:"still life"'],
+    ia: ['subject:("still life")'],
+  },
+  costume: {
+    wm: ['"theatrical costume"'],
+    loc: [`${LOC_CAT} intitle:costume`],
+    met: [{ q: "costume", medium: "Costume" }],
+    ia: ['subject:("theatrical costume" OR "costume design" OR "stage costume")'],
+  },
+  lighting: {
+    wm: ["chiaroscuro", "nocturne painting", "candlelight painting", "intitle:silhouette"],
+    met: [{ q: "night", medium: "Paintings" }],
+    cma: ["type=Painting&q=night"],
+    loc: [`${LOC_CAT} intitle:night`],
+  },
+  atmosphere: {
+    wm: ["intitle:fog", "intitle:mist", "storm clouds", "intitle:dusk"],
+    cma: ["type=Painting&q=storm"],
+    met: [{ q: "storm", medium: "Paintings" }],
+  },
+  biome: {
+    wm: ["intitle:dunes", "rainforest", "intitle:glacier", '"salt marsh"'],
+    ia: ["subject:(deserts OR glaciers)"],
+  },
+  street: {
+    loc: [`${LOC_CAT} "Farm Security Administration"`,
+          `${LOC_CAT} Bain News Service`,
+          `${LOC_CAT} intitle:street`],
+    wm: ['"street photography"'],
+  },
+  earlycolor: {
+    wm: ["autochrome", "photochrom"],
+    loc: [`${LOC_CAT} photochrom`],
+  },
+  photoportraits: {
+    wm: ['"carte de visite"', "daguerreotype portrait", '"studio portrait"'],
+    loc: [`${LOC_CAT} intitle:portrait`],
+    si: ['unit_code:"NPG" AND topic:"Portraits"'],
+  },
+
+  /* ---------- Design ---------- */
+  typography: {
+    ia: ['subject:("type specimens" OR typography OR lettering OR calligraphy)'],
+    /* no '"type specimen"' here — on Commons that phrase means biological
+       type specimens */
+    wm: ["intitle:alphabet", "intitle:lettering", "intitle:calligraphy"],
+  },
+  posters: {
+    loc: [`${LOC_CAT} intitle:poster`],
+    wm: ["intitle:poster"],
+    met: [{ q: "poster", medium: "Prints" }],
+    europeana: ["what:poster"],
+  },
+  brand: {
+    wm: ["intitle:trademark", "intitle:monogram", 'intitle:"ex libris"'],
+  },
+  editorial: {
+    wm: ['intitle:"title page"', '"magazine cover"', "intitle:broadside"],
+  },
+  abstract: {
+    wm: ["intitle:abstract", "intitle:kaleidoscope"],
+    cma: ["q=abstract"],
+  },
+  /* Geometry lives on Commons (renders, diagrams, photographed models) and
+     Sketchfab model-search thumbnails. IA's geometry subjects tested junk-thin
+     (1–12 usable items), so it sits these out. 'stellated' is Commons-only —
+     on Sketchfab it matches stellate neurons. */
+  polyhedra: {
+    wm: ["intitle:polyhedron", "stellated", "intitle:icosahedron",
+         "intitle:dodecahedron", '"Kepler-Poinsot"', "intitle:hypercube",
+         '"geodesic dome"'],
+    sf: ["polyhedron", "icosahedron", "dodecahedron"],
+  },
+  curves: {
+    wm: ['"Klein bottle"', '"Möbius strip"', '"minimal surface"',
+         '"torus knot"', "Lissajous", "Chladni", '"Penrose tiling"',
+         '"mathematical model"', "intitle:fractal", '"Mandelbrot set"'],
+    sf: ["klein bottle", "gyroid", "mobius strip", "torus knot"],
+  },
+  ornament: {
+    ia: ["subject:(ornament OR pattern OR wallpaper OR textile)"],
+    wm: ["intitle:ornament"],
+    met: [{ q: "design", medium: "Textiles" }],
+    cma: ["type=Textile"],
+    si: ['unit_code:"CHNDM" AND (object_type:"Wallcoverings" OR object_type:"Textiles")'],
+    europeana: ["ornament"],
+  },
+  maps: {
+    ia: ["subject:(map OR maps OR cartography)"],
+    wm: ["intitle:map"],
+    loc: [`${LOC_CAT} intitle:map`],
+    europeana: ["what:map"],
+  },
+  charts: {
+    ia: ['subject:(infographics OR diagrams OR "statistical atlas" OR chart)'],
+    wm: ["intitle:diagram", '"statistical atlas"'],
+    europeana: ["what:diagram"],
+  },
+
+  /* ---------- Archive ---------- */
+  paintings: {
+    met: [{ q: "painting", medium: "Paintings" }],
+    cma: ["type=Painting"],
+    wm: ['"oil painting"'],
+    ia: ["subject:(painting OR paintings OR watercolor)"],
+    europeana: ["what:painting"],
+  },
+  photos: {
+    met: [{ q: "photograph", medium: "Photographs" }],
+    cma: ["type=Photograph"],
+    wm: ['"vintage photograph"'],
+    loc: [LOC_CAT],
+    ia: ["subject:(photograph OR photographs OR photography)"],
+    europeana: ["what:photograph"],
+  },
+  portraits: {
+    met: [{ q: "portrait", medium: "Paintings" }],
+    cma: ["type=Painting&q=portrait"],
+    si: ['unit_code:"NPG" AND topic:"Portraits"'],
+    wm: ["intitle:portrait"],
+    loc: [`${LOC_CAT} intitle:portrait`],
+    europeana: ["what:portrait"],
+  },
+  manuscripts: {
+    ia: ["subject:(manuscript OR manuscripts OR illuminated)"],
+    wm: ['"illuminated manuscript"'],
+    cma: ["type=Manuscript"],
+    europeana: ["what:manuscript"],
+  },
+  architecture: {
+    ia: ["subject:(architecture)"],
+    wm: ['"architectural drawing"'],
+    loc: [`${LOC_CAT} intitle:building`],
+    europeana: ["architecture"],
+  },
+  botanical: {
+    ia: ['subject:(botany OR botanical OR "botanical illustration" OR flora)'],
+    wm: ['"botanical illustration"'],
+    si: ['unit_code:"NMNHBOTANY"'],
+    cma: ["q=botanical"],
+    europeana: ['"botanical illustration"'],
+  },
+  objects: {
+    met: [{ q: "sculpture", medium: "Sculpture" }],
+    cma: ["type=Sculpture"],
+    si: ['unit_code:"CHNDM"'],
+    gdh: [true],
+    ia: ['subject:(sculpture OR ceramics OR artifact OR "decorative arts")'],
+    europeana: ["what:sculpture"],
+  },
+};
+
+/* Derived: which categories each provider can serve (drives "Anything"
+   and the source-pin graying). */
+const PROVIDER_CATS = {};
+for (const [cat, byProvider] of Object.entries(RECIPES)) {
+  for (const pid of Object.keys(byProvider)) {
+    (PROVIDER_CATS[pid] = PROVIDER_CATS[pid] || []).push(cat);
+  }
+}
