@@ -9,11 +9,11 @@
 const rnd = (n) => Math.floor(Math.random() * n);
 const pick = (arr) => arr[rnd(arr.length)];
 
-async function getJSON(url, timeoutMs = 12000) {
+async function getJSON(url, timeoutMs = 12000, headers) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
+    const res = await fetch(url, { signal: ctrl.signal, headers });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return await res.json();
   } finally {
@@ -420,6 +420,55 @@ const PROVIDERS = [
             fallback: `${stem}/full/600,/0/default.jpg`,
             title: asText(w.title) || "Untitled",
             link: `https://wellcomecollection.org/works/${w.id}`,
+          };
+        })
+        .filter(Boolean);
+    },
+  },
+
+  /* ---- Science Museum Group (no key) ------------------------------------- */
+  /* Their CloudFront blocks unknown user-agents, which reads as a 403 and
+     looks like an auth wall — it isn't. A browser sends its own UA, so the
+     only thing this needs is an explicit Accept header; without it the API
+     302s to the HTML page. Deep on exactly the machine-made things the
+     other archives are thin on: 6.3k microscopes, 4.5k cameras, 1.8k
+     radios, 2.2k locomotives. */
+  {
+    id: "smg",
+    name: "Science Museum Group",
+    short: "Science Museum",
+    weight: 1,
+    enabled: () => true,
+    supports(cat) { return providerSupports(this.id, cat); },
+    async fetchPool(cat) {
+      const { effective, variant } = pickVariant(this.id, cat);
+      const pagesKey = `mnemocine.smgPages.${effective}`;
+      let pages = null;
+      try { pages = JSON.parse(sessionStorage.getItem(pagesKey)); } catch { /* first run */ }
+      const page = 1 + rnd(Math.max(1, Math.min(pages || 1, 25)));
+      const url =
+        `https://collection.sciencemuseumgroup.org.uk/search/objects` +
+        `?q=${encodeURIComponent(variant)}&has_image=true` +
+        `&page%5Bsize%5D=40&page%5Bnumber%5D=${page}`;
+      const data = await getJSON(url, 12000, { Accept: "application/json" });
+      const total = data?.meta?.count?.type?.objects;
+      if (total) {
+        try {
+          sessionStorage.setItem(pagesKey, JSON.stringify(Math.ceil(total / 40)));
+        } catch { /* fine */ }
+      }
+      return (data?.data ?? [])
+        .map((rec) => {
+          const proc = rec.attributes?.multimedia?.[0]?.["@processed"] ?? {};
+          const loc = proc.large?.location || proc.medium?.location;
+          if (!loc) return null;
+          const thumb = proc.large_thumbnail?.location;
+          const CDN = "https://coimages.sciencemuseumgroup.org.uk/";
+          return {
+            img: CDN + loc,
+            fallback: thumb ? CDN + thumb : null,
+            title: asText(rec.attributes?.summary?.title) || "Untitled",
+            link: `https://collection.sciencemuseumgroup.org.uk/objects/${rec.id}`,
           };
         })
         .filter(Boolean);

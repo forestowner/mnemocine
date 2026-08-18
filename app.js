@@ -75,7 +75,7 @@ function recordSuccess(p) {
 /* ---------- pools ---------- */
 
 /* bump the version when provider queries or item shapes change so stale pools die */
-function poolStorageKey(key) { return "triptych.pool.v6." + key; }
+function poolStorageKey(key) { return "triptych.pool.v7." + key; }
 
 const ALL_CAT_IDS = new Set([
   "any",
@@ -290,7 +290,21 @@ function stopViewer(slot) {
     slot.viewer = null;
   }
   slot.viewerApi = null;
+  slot.frame.draggable = true;
+  if (slot.current?.link) slot.frame.href = slot.current.link;
   slot.rotateBtn.setAttribute("aria-pressed", "false");
+}
+
+/* Every Sketchfab link carries the model's 32-hex uid, so an embed URL can
+   always be rebuilt from it. Deriving rather than trusting a stored field
+   keeps the 3D button working for items cached or saved to history before
+   that field existed. */
+function embedFor(c) {
+  if (!c) return null;
+  if (c.sfEmbed) return c.sfEmbed;
+  if (!/sketchfab\.com/i.test(c.link || "")) return null;
+  const uid = (c.link.match(/([a-f0-9]{32})/i) || [])[1];
+  return uid ? `https://sketchfab.com/models/${uid}/embed` : null;
 }
 
 /* Sketchfab's Viewer API (loaded lazily, only when a viewer opens) lets us
@@ -316,12 +330,18 @@ async function toggleViewer(slot) {
     stopViewer(slot);
     return;
   }
-  const embed = slot.current?.sfEmbed;
+  const embed = embedFor(slot.current);
   if (!embed) return;
   const frame = document.createElement("iframe");
   frame.className = "viewer";
   frame.allow = "autoplay; fullscreen; xr-spatial-tracking";
   frame.title = `${slot.current.title} — interactive 3D viewer`;
+  /* The panel is an <a>, and on desktop a mouse drag inside a link starts
+     a native link-drag instead of reaching the viewer's canvas — so
+     orbiting worked on touch only. Neutralise the anchor while the viewer
+     is open; stopViewer puts it back. */
+  slot.frame.draggable = false;
+  slot.frame.removeAttribute("href");
   slot.frame.append(frame);
   slot.viewer = frame;
   slot.viewerApi = null;
@@ -442,7 +462,7 @@ async function loadSlot(index) {
           cat,
           src: srcId,
         };
-        slot.rotateBtn.hidden = !item.sfEmbed;
+        slot.rotateBtn.hidden = !embedFor(slot.current);
         updateDownloadHint();
         scheduleCommit();
         return;
@@ -549,7 +569,7 @@ async function renderStored(slot, c) {
     slot.frame.href = c.link;
     slot.img.alt = `${c.title} — ${c.source}`;
     setLabel(slot, { title: c.title, source: c.source, link: c.link });
-    slot.rotateBtn.hidden = !c.sfEmbed;
+    slot.rotateBtn.hidden = !embedFor(c);
     updateDownloadHint();
   } catch {
     if (slot.run !== run) return;
