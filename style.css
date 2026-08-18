@@ -27,6 +27,17 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* iOS Safari gives buttons its own chrome (rounded corners, system font,
+   grey fill) — reset so every platform renders the same controls */
+button {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body { height: 100%; }
 
 body {
@@ -387,9 +398,22 @@ kbd {
 
 @media (max-width: 860px) {
   body { overflow: auto; height: auto; }
-  .row { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1fr; padding: 12px 16px 14px; }
   .frame { height: 62vh; }
   .sub { display: none; }
+  /* keyboard shortcuts don't apply on touch, and the hint's <kbd> chips
+     wrap into a ragged stack at this width */
+  .hint { display: none; }
+  /* wordmark on one row, controls on their own — they can't share 375px */
+  .bar { padding: 11px 16px 10px; gap: 10px 12px; flex-wrap: wrap; }
+  .bar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .action { padding: 7px 10px; }
+  .about { top: 46px; left: 16px; right: 16px; max-width: none; }
 }
 
 @media (max-height: 480px) {

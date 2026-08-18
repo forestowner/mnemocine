@@ -62,30 +62,63 @@ function sketchfabItems(data) {
     .filter(Boolean);
 }
 
+/* Titles that mean "not a reference image". Commons text search pulls in
+   dense clusters of game/dev assets and software captures — a search for
+   `intitle:texture` is half Minetest tile dumps by page 5. */
+const JUNK_TITLE =
+  /minetest|texture[ -]?pack|opengl|\bshader\b|screenshot|sprite ?sheet|placeholder|test ?card|\bmockup\b/i;
+
 /* Shared Commons search → pool (Wikimedia Commons + the Commons-hosted
-   Library of Congress collection). */
+   Library of Congress collection).
+
+   Sampling note: this used to ask for `gsrsort=random`, which draws
+   uniformly from the whole match set — and for a text query the tail is
+   mostly incidental matches (batch-numbered snapshots that merely have
+   the word in their filename). Relevance order puts genuine subjects
+   first, so instead we keep relevance and randomise a bounded OFFSET
+   into its head. Variety now comes from the offset plus the several
+   query variants each category carries. */
 async function commonsPool(search) {
-  const url =
-    `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
-    `&generator=search&gsrsearch=${encodeURIComponent(search + " filetype:bitmap")}` +
-    `&gsrnamespace=6&gsrlimit=25&gsrsort=random` +
-    `&prop=imageinfo&iiprop=url%7Cmime&iiurlwidth=1280`;
-  const data = await getJSON(url);
-  const pages = Object.values(data?.query?.pages ?? {});
-  return pages
-    .map((p) => {
-      const ii = p.imageinfo?.[0];
-      if (!ii?.thumburl) return null;
-      if (ii.mime && !/^image\/(jpeg|png|gif|webp)/.test(ii.mime)) return null;
-      const title = asText(p.title).replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, "");
-      return {
-        img: ii.thumburl,
-        fallback: null,
-        title: title || "Untitled",
-        link: ii.descriptionurl || `https://commons.wikimedia.org/?curid=${p.pageid}`,
-      };
-    })
-    .filter(Boolean);
+  const fetchAt = async (offset) => {
+    const url =
+      `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
+      `&generator=search&gsrsearch=${encodeURIComponent(search + " filetype:bitmap")}` +
+      `&gsrnamespace=6&gsrlimit=25&gsroffset=${offset}` +
+      `&prop=imageinfo&iiprop=url%7Cmime&iiurlwidth=1280`;
+    const data = await getJSON(url);
+    return Object.values(data?.query?.pages ?? {});
+  };
+  /* Relevance order also clusters batch uploads — twenty near-identical
+     frames of one subject in a row — so keep one per normalised title.
+     seenSubject is shared across pages so top-ups don't reintroduce
+     what the first page already dropped. */
+  const seenSubject = new Set();
+  const build = (pages) =>
+    pages
+      .map((p) => {
+        const ii = p.imageinfo?.[0];
+        if (!ii?.thumburl) return null;
+        if (ii.mime && !/^image\/(jpeg|png|gif|webp)/.test(ii.mime)) return null;
+        const title = asText(p.title).replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, "");
+        if (JUNK_TITLE.test(title)) return null;
+        const subject = title.toLowerCase().replace(/[\d\W_]+/g, " ").trim().slice(0, 38);
+        if (subject && seenSubject.has(subject)) return null;
+        seenSubject.add(subject);
+        return {
+          img: ii.thumburl,
+          fallback: null,
+          title: title || "Untitled",
+          link: ii.descriptionurl || `https://commons.wikimedia.org/?curid=${p.pageid}`,
+        };
+      })
+      .filter(Boolean);
+
+  const first = rnd(10) * 25; // 0–225, relevance-ranked head
+  let items = build(await fetchAt(first));
+  /* a page can collapse to almost nothing once duplicates are dropped */
+  if (items.length < 8) items = items.concat(build(await fetchAt(first + 250)));
+  if (items.length < 4 && first !== 0) items = items.concat(build(await fetchAt(0)));
+  return items;
 }
 
 const PROVIDERS = [
@@ -308,6 +341,91 @@ const PROVIDERS = [
     },
   },
 
+  /* ---- Victoria & Albert Museum (no key) --------------------------------- */
+  /* Took over the design/decorative-arts role Cooper Hewitt used to play
+     via Smithsonian. Key-free, CORS-open, IIIF images that load in a
+     browser — and deep where it counts: 91k textiles, 45k costume,
+     66k ceramics. */
+  {
+    id: "va",
+    name: "Victoria & Albert Museum",
+    short: "V&A",
+    weight: 1,
+    enabled: () => true,
+    supports(cat) { return providerSupports(this.id, cat); },
+    async fetchPool(cat) {
+      const { effective, variant } = pickVariant(this.id, cat);
+      const pagesKey = `mnemocine.vaPages.${effective}`;
+      let pages = null;
+      try { pages = JSON.parse(sessionStorage.getItem(pagesKey)); } catch { /* first run */ }
+      const page = 1 + rnd(Math.max(1, Math.min(pages || 1, 25)));
+      const url =
+        `https://api.vam.ac.uk/v2/objects/search?q=${encodeURIComponent(variant)}` +
+        `&images_exist=1&page_size=40&page=${page}`;
+      const data = await getJSON(url);
+      const found = data?.info?.pages;
+      if (found) {
+        try { sessionStorage.setItem(pagesKey, JSON.stringify(found)); } catch { /* fine */ }
+      }
+      return (data?.records ?? [])
+        .map((r) => {
+          const base = r._images?._iiif_image_base_url;
+          if (!base) return null;
+          return {
+            img: `${base}full/!1200,1200/0/default.jpg`,
+            fallback: `${base}full/!600,600/0/default.jpg`,
+            title: asText(r._primaryTitle) || asText(r.objectType) || "Untitled",
+            link: `https://collections.vam.ac.uk/item/${r.systemNumber}`,
+          };
+        })
+        .filter(Boolean);
+    },
+  },
+
+  /* ---- Wellcome Collection (no key) -------------------------------------- */
+  /* Medical, anatomical and natural-history illustration, openly licensed
+     and served over IIIF. */
+  {
+    id: "well",
+    name: "Wellcome Collection",
+    short: "Wellcome",
+    weight: 1,
+    enabled: () => true,
+    supports(cat) { return providerSupports(this.id, cat); },
+    async fetchPool(cat) {
+      const { effective, variant } = pickVariant(this.id, cat);
+      const pagesKey = `mnemocine.wellPages.${effective}`;
+      let pages = null;
+      try { pages = JSON.parse(sessionStorage.getItem(pagesKey)); } catch { /* first run */ }
+      const page = 1 + rnd(Math.max(1, Math.min(pages || 1, 20)));
+      const url =
+        `https://api.wellcomecollection.org/catalogue/v2/works` +
+        `?query=${encodeURIComponent(variant)}` +
+        `&items.locations.license=pdm,cc0,cc-by&workType=k,q` +
+        `&include=items&pageSize=40&page=${page}`;
+      const data = await getJSON(url);
+      const found = data?.totalPages;
+      if (found) {
+        try { sessionStorage.setItem(pagesKey, JSON.stringify(found)); } catch { /* fine */ }
+      }
+      return (data?.results ?? [])
+        .map((w) => {
+          const loc = (w.items ?? [])
+            .flatMap((it) => it.locations ?? [])
+            .find((l) => l.locationType?.id === "iiif-image" && l.url);
+          if (!loc) return null;
+          const stem = loc.url.replace(/\/info\.json$/, "");
+          return {
+            img: `${stem}/full/1200,/0/default.jpg`,
+            fallback: `${stem}/full/600,/0/default.jpg`,
+            title: asText(w.title) || "Untitled",
+            link: `https://wellcomecollection.org/works/${w.id}`,
+          };
+        })
+        .filter(Boolean);
+    },
+  },
+
   /* ---- Smithsonian Open Access (needs free key) -------------------------- */
   /* Search rows only carry image URLs for museum units that photograph
      objects, so recipes are unit-scoped; the separate fq param is ignored
@@ -316,7 +434,14 @@ const PROVIDERS = [
     id: "si",
     name: "Smithsonian",
     weight: 1,
-    enabled: () => !!window.ARCHIVE_KEYS?.smithsonian,
+    /* OFF by default (2026-08-08). The search API works fine, but every
+       image on ids.si.edu now fails to load cross-origin in a browser —
+       0/12 in testing — while returning a normal 200 to curl. Their F5
+       bot-defense hands out `TS…` cookies that browsers won't replay on a
+       cross-site image request, and no client-side workaround exists.
+       Flip `smithsonianImages` on in config.js to try it again. */
+    enabled: () =>
+      !!window.ARCHIVE_KEYS?.smithsonian && !!window.ARCHIVE_KEYS?.smithsonianImages,
     supports(cat) { return providerSupports(this.id, cat); },
     async fetchPool(cat) {
       const { variant } = pickVariant(this.id, cat);

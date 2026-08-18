@@ -69,7 +69,9 @@ Categories are organized by practice intent, in four groups:
 - **Artist** — poses & figure, anatomy, clothing & drapery, textures,
   landscape, environments, interiors, study sculpture, hard surface &
   machines, devices & instruments, retro electronics (transistor radios,
-  CRTs, synths, tape decks, vacuum tubes), animals & creatures
+  CRTs, synths, tape decks, vacuum tubes)
+- **Nature** — flowers, trees, shrubs & hedges, botanical plates, birds,
+  mammals, insects, marine life, zoological plates
 - **Photography** — props & still life, costume, lighting, atmosphere,
   biome, documentary & street, early color & photochrom, portrait photography
 - **Design** — typography & lettering, posters, brand marks & ex libris,
@@ -77,7 +79,7 @@ Categories are organized by practice intent, in four groups:
   (Klein bottles, Möbius strips, minimal surfaces, fractals, Chladni
   figures…), ornament, maps, charts
 - **Archive** — paintings, photographs, portraits, manuscripts,
-  architecture, botanical, objects & artifacts
+  architecture, objects & artifacts
 
 These are not API vocabulary: each category is a *recipe* in
 [categories.js](categories.js) — a set of count-tested queries across
@@ -116,13 +118,15 @@ Live now, no key needed:
 | Cleveland Museum of Art | `openaccess-api.clevelandart.org`, `type`-scoped (replaced Art Institute of Chicago, whose image CDN blocks hotlinking) |
 | Global Digital Heritage | their 3D-scan captures via `api.sketchfab.com` |
 | Sketchfab | model-search render thumbnails (geometry categories only), linking to the model page |
-| Smithsonian Open Access | `api.si.edu`, unit-scoped (SAAM, Cooper Hewitt, NPG, herbarium); key lives in [config.js](config.js) |
+| Victoria & Albert Museum | `api.vam.ac.uk`, IIIF images — design and decorative arts (91k textiles, 66k ceramics, 45k costume, 20k posters) |
+| Wellcome Collection | `api.wellcomecollection.org`, IIIF images — anatomical and natural-history illustration |
 
-Dormant until you paste a free key into [config.js](config.js):
+Wired up but **off by default**:
 
-| Source | Get a key |
+| Source | Why |
 |---|---|
-| Europeana | <https://pro.europeana.eu/page/get-api> |
+| Smithsonian Open Access | `api.si.edu` search works and the key is in [config.js](config.js), but every image on `ids.si.edu` now fails to load cross-origin in a browser (0/12 in testing) while returning a normal 200 to `curl` — their bot defense issues `TS…` cookies a browser won't replay on an image request. Set `smithsonianImages: true` in config.js to retest. |
+| Europeana | needs a free key — get one at <https://pro.europeana.eu/page/get-api> and paste it into [config.js](config.js) |
 
 Note: anything in `config.js` ships with the site. If you deploy publicly,
 that includes your Smithsonian key — it's free and rate-limited, but if you
@@ -145,6 +149,37 @@ slot quietly falls through to the next one.
 
 Category choices persist between visits. "Anything" maps to a random
 category per provider, so even the unfiltered feed stays varied.
+
+### Why results are on-topic (and how to keep them that way)
+
+No archive shares a vocabulary, and only some have real tagging, so
+precision comes from four rules — worth knowing if you edit
+[categories.js](categories.js):
+
+1. **Prefer structural filters to free text.** `medium=Paintings` (Met),
+   `type=Sculpture` (Cleveland), `unit_code:"NPG"` (Smithsonian) and
+   `subject:` (Internet Archive) are indexed fields. A bare `q=` search
+   matches *any* field — donor names, gallery notes — which is how
+   "botanical" once returned a Jesus painting.
+2. **Sample by relevance, not at random.** Commons queries take the
+   relevance-ranked head with a randomised offset (0–225) instead of
+   `sort=random`. Random draws uniformly from the whole match set, whose
+   tail is mostly incidental filename matches; relevance puts genuine
+   subjects first. This one change fixed more noise than any query
+   rewrite.
+3. **Anchor text to titles and categories.** `intitle:` and
+   `incategory:"…"` (curated human taxonomy) beat description matches.
+   `haswbstatement:P180=Q…` is Commons' structured *depicts* tag, best
+   for subject-like things — note it means "appears in the image", so a
+   hotel-room photo counts as depicting a television.
+4. **Watch for homonyms.** Verified traps: "type specimen" is a holotype
+   in biology, `intitle:lettering` is mostly ship-hull names,
+   `intitle:tesseract` is a music festival, "stellated" on Sketchfab is
+   stellate neurons.
+
+Two filters run on every Commons pool: a junk-title blocklist (game
+assets, screenshots) and near-duplicate collapsing, since relevance order
+tends to cluster batch uploads of one subject.
 
 ## Planned
 
