@@ -7,4 +7,10 @@
 window.ARCHIVE_KEYS = {
   europeana: "",
   smithsonian: "VKh7F4wjfpGKwi3N5SFE8Qjcpo8W9uaevPhd6jm8",
+
+  /* Smithsonian's search API works, but their image host (ids.si.edu)
+     stopped serving cross-origin browser requests — bot defense that
+     curl passes and browsers can't. The provider stays off until this is
+     true; flip it to test whether they've relaxed it. */
+  smithsonianImages: false,
 };
