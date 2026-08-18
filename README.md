@@ -120,6 +120,7 @@ Live now, no key needed:
 | Sketchfab | model-search render thumbnails (geometry categories only), linking to the model page |
 | Victoria & Albert Museum | `api.vam.ac.uk`, IIIF images — design and decorative arts (91k textiles, 66k ceramics, 45k costume, 20k posters) |
 | Wellcome Collection | `api.wellcomecollection.org`, IIIF images — anatomical and natural-history illustration |
+| Science Museum Group | `collection.sciencemuseumgroup.org.uk` — machines and instruments (6.3k microscopes, 4.5k cameras, 1.8k radios, 2.2k locomotives). Needs an explicit `Accept: application/json` header, otherwise it redirects to HTML; their CloudFront also rejects unknown user-agents, which looks like a 403 auth wall from `curl` but never affects a browser |
 
 Wired up but **off by default**:
 

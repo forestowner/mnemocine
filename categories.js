@@ -150,11 +150,14 @@ const RECIPES = {
     wm: ['incategory:"Patent drawings"', "patent drawing",
          "steam locomotive photograph", '"suit of armor"'],
     ia: ["subject:(machinery OR locomotives OR engines)"],
+    smg: ["locomotive", "engine", "turbine", "machine tool"],
   },
   devices: {
     wm: ['incategory:"Scientific instruments"', "intitle:typewriter",
          '"scientific instrument"', "antique camera"],
     ia: ['subject:("scientific instruments" OR phonograph OR microscopes)'],
+    smg: ["microscope", "camera", "telescope", "clock", "typewriter",
+          "surveying instrument"],
   },
   /* Smithsonian sits electronics out: NMAH search rows carry no media and
      Cooper Hewitt's text match tested nearly empty (6 rows). */
@@ -167,6 +170,8 @@ const RECIPES = {
          "intitle:gramophone", '"rotary telephone"'],
     loc: [`${LOC_CAT} intitle:radio`],
     ia: ['subject:("electronics" OR "consumer electronics")'],
+    smg: ["radio", "television", "computer", "tape recorder", "oscilloscope",
+          "telephone", "gramophone"],
     sf: ["retro tv", "vintage radio", "cassette player", "crt monitor", "synthesizer"],
   },
 
