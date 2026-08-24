@@ -107,11 +107,13 @@ const RECIPES = {
     wm: ['"anatomical illustration"', "écorché", "intitle:anatomy"],
     well: ["anatomy", "skeleton", "dissection"],
   },
+  /* Deliberately narrower than Costume & wardrobe, which used to overlap
+     it almost entirely. This one is cloth as form — how fabric falls,
+     folds and is cut. Costume is dress as worn, on a character. */
   drapery: {
-    ia: ['subject:(costume OR "fashion plates" OR drapery)'],
-    wm: ['"fashion plate"', '"drapery study"', '"costume design" drawing'],
-    met: [{ q: "dress", medium: "Costume" }],
-    va: ["dress", "embroidery"],
+    ia: ['subject:("fashion plates" OR drapery)'],
+    wm: ["intitle:drapery", '"drapery study"', '"fashion plate"'],
+    va: ["embroidery", "lace"],
   },
   textures: {
     wm: ["intitle:texture", "peeling paint", "weathered wood surface", "rust macro"],
@@ -235,12 +237,13 @@ const RECIPES = {
     wm: ['intitle:"still life"'],
     ia: ['subject:("still life")'],
   },
+  /* dress as worn — stage, character, period. See the note on drapery. */
   costume: {
-    wm: ['"theatrical costume"'],
+    wm: ['"theatrical costume"', '"costume design"'],
     loc: [`${LOC_CAT} intitle:costume`],
     met: [{ q: "costume", medium: "Costume" }],
-    ia: ['subject:("theatrical costume" OR "costume design" OR "stage costume")'],
-    va: ["costume", "theatre costume"],
+    ia: ['subject:("theatrical costume" OR "stage costume")'],
+    va: ["theatre costume", "costume"],
   },
   lighting: {
     wm: ["chiaroscuro", "nocturne painting", "candlelight painting", "intitle:silhouette"],
