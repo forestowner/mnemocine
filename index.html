@@ -53,7 +53,12 @@
   <section class="slot" data-state="loading">
     <div class="slot-bar">
       <div class="slot-controls">
-        <span class="cat-wrap"><select class="sel cat"></select></span>
+        <span class="cat-picker">
+          <select class="sel cat visually-hidden" tabindex="-1"></select>
+          <button class="cat-trigger" type="button" aria-expanded="false"
+            aria-haspopup="true">Anything</button>
+          <div class="cat-panel" hidden></div>
+        </span>
         <span class="cat-wrap"><select class="sel src"></select></span>
       </div>
       <button class="rotate3d" type="button" hidden aria-pressed="false"

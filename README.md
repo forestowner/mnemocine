@@ -64,7 +64,15 @@ single-slot rerolls), stepping back restores the dropdowns that produced
 that set, history survives page reloads, and changing anything while
 viewing an old set branches from there like an undo stack.
 
-Categories are organized by practice intent, in four groups:
+Categories are picked from a visual panel: collapsible groups, each
+category a tile with a thumbnail behind its label. A tile's thumbnail is
+captured once — the first image that category serves, kept in
+`localStorage` and never rerolled — so each category keeps a stable face.
+Tiles fill in as you browse, and any still missing are fetched one at a
+time in the background whenever the panel is open. The underlying
+`<select>` is still there, hidden, as the state model.
+
+Categories are organized by practice intent, in five groups:
 
 - **Artist** — poses & figure, anatomy, clothing & drapery, textures,
   landscape, environments, interiors, study sculpture, hard surface &
