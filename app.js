@@ -599,7 +599,7 @@ histFwd.addEventListener("click", () => showHistory(1));
 
 /* One frozen thumbnail per category, kept forever once captured, so each
    category keeps a stable face instead of flickering on every visit. */
-const THUMBS_KEY = "mnemocine.catThumbs.v2";
+const THUMBS_KEY = "mnemocine.catThumbs.v3";
 const GROUPS_KEY = "mnemocine.catGroups.v1";
 
 let catThumbs = {};
@@ -620,16 +620,40 @@ function thumbSource(item) {
   return item?.fallback || item?.img || null;
 }
 
-/* Only cache a URL that actually renders, so a tile is never permanently
-   blank — this runs once per category, ever. */
-function loads(url) {
+const THUMB_W = 220;
+const THUMB_H = 124;
+
+function loadImg(url, crossOrigin) {
   return new Promise((resolve) => {
     const img = new Image();
-    const timer = setTimeout(() => resolve(false), 10000);
-    img.onload = () => { clearTimeout(timer); resolve(true); };
-    img.onerror = () => { clearTimeout(timer); resolve(false); };
+    if (crossOrigin) img.crossOrigin = "anonymous";
+    const timer = setTimeout(() => resolve(null), 12000);
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); resolve(null); };
     img.src = url;
   });
+}
+
+/* Download the picture once, shrink it here, and keep the bytes — so the
+   tile never touches the network again. Needs a CORS-clean image to read
+   the canvas back; the two archives that send no CORS header fall back to
+   referencing their URL (see storeThumb). */
+async function shrinkToDataUrl(url) {
+  const img = await loadImg(url, true);
+  if (!img?.naturalWidth) return null;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = THUMB_W;
+    canvas.height = THUMB_H;
+    const ctx = canvas.getContext("2d");
+    const scale = Math.max(THUMB_W / img.naturalWidth, THUMB_H / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, (THUMB_W - w) / 2, (THUMB_H - h) / 2, w, h); // cover-crop
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } catch {
+    return null; // tainted canvas — host sent no CORS header
+  }
 }
 
 function paintTile(cat) {
@@ -641,10 +665,27 @@ function paintTile(cat) {
   }
 }
 
-function rememberThumb(cat, item) {
-  const url = thumbSource(item);
-  if (!cat || cat === "any" || catThumbs[cat] || !url) return;
-  catThumbs[cat] = url;
+/* Prefer stored bytes; fall back to referencing the URL only when the host
+   won't allow reading the pixels back (the Met, Cleveland). Either way the
+   value is only kept once it is known to render. */
+async function rememberThumb(cat, item) {
+  if (!cat || cat === "any" || catThumbs[cat]) return;
+  /* Try both renditions before giving up on storing bytes — a provider's
+     smaller one isn't always the CORS-clean one (archive.org's
+     services/img sends no header while its IIIF endpoint does). */
+  const candidates = [...new Set([item?.fallback, item?.img].filter(Boolean))];
+  let value = null;
+  for (const url of candidates) {
+    value = await shrinkToDataUrl(url);
+    if (value) break;
+  }
+  if (!value) {
+    for (const url of candidates) {
+      if (await loadImg(url, false)) { value = url; break; }
+    }
+  }
+  if (!value || catThumbs[cat]) return;
+  catThumbs[cat] = value;
   saveJSON(THUMBS_KEY, catThumbs);
   paintTile(cat);
 }
@@ -676,7 +717,8 @@ async function pumpThumbs() {
         const items = (await provider.fetchPool(cat)).filter((i) => thumbSource(i));
         /* try a few, since a single dud would leave the tile blank forever */
         for (const item of items.slice(0, 3)) {
-          if (await loads(thumbSource(item))) { rememberThumb(cat, item); break; }
+          await rememberThumb(cat, item);
+          if (catThumbs[cat]) break;
         }
         if (catThumbs[cat]) break;
       } catch { /* try the next provider */ }
