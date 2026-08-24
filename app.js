@@ -668,26 +668,52 @@ function paintTile(cat) {
 /* Prefer stored bytes; fall back to referencing the URL only when the host
    won't allow reading the pixels back (the Met, Cleveland). Either way the
    value is only kept once it is known to render. */
-async function rememberThumb(cat, item) {
-  if (!cat || cat === "any" || catThumbs[cat]) return;
-  /* Try both renditions before giving up on storing bytes — a provider's
-     smaller one isn't always the CORS-clean one (archive.org's
-     services/img sends no header while its IIIF endpoint does). */
-  const candidates = [...new Set([item?.fallback, item?.img].filter(Boolean))];
-  let value = null;
-  for (const url of candidates) {
-    value = await shrinkToDataUrl(url);
-    if (value) break;
-  }
-  if (!value) {
-    for (const url of candidates) {
-      if (await loadImg(url, false)) { value = url; break; }
-    }
-  }
-  if (!value || catThumbs[cat]) return;
+function storeThumb(cat, value) {
   catThumbs[cat] = value;
   saveJSON(THUMBS_KEY, catThumbs);
   paintTile(cat);
+}
+
+/* Stores bytes when it can. A URL reference is only accepted with
+   allowUrl — otherwise an image that happens to come from one of the
+   three CORS-blocked hosts would claim the slot and stop us ever storing
+   real bytes from a readable archive. Returns true once bytes are held. */
+async function rememberThumb(cat, item, allowUrl = false) {
+  if (!cat || cat === "any") return false;
+  if (catThumbs[cat]?.startsWith("data:")) return true; // already have bytes
+  /* Try both renditions — a provider's smaller one isn't always the
+     CORS-clean one (archive.org's services/img sends no header while its
+     IIIF endpoint does). */
+  const candidates = [...new Set([item?.fallback, item?.img].filter(Boolean))];
+  for (const url of candidates) {
+    const data = await shrinkToDataUrl(url);
+    if (data) { storeThumb(cat, data); return true; }
+  }
+  if (!allowUrl || catThumbs[cat]) return false;
+  for (const url of candidates) {
+    if (await loadImg(url, false)) { storeThumb(cat, url); return false; }
+  }
+  return false;
+}
+
+/* Walk the archives that serve this category until one yields a readable
+   image; only settle for a URL reference once none of them can. */
+async function captureThumb(cat) {
+  const providers = weightedOrder(
+    PROVIDERS.filter((p) => p.enabled() && p.supports(cat) && providerAvailable(p))
+  ).slice(0, 4);
+  let anyItem = null;
+  for (const provider of providers) {
+    let items = [];
+    try {
+      items = (await provider.fetchPool(cat)).filter((i) => thumbSource(i)).slice(0, 2);
+    } catch { continue; }
+    for (const item of items) {
+      anyItem = anyItem || item;
+      if (await rememberThumb(cat, item)) return;
+    }
+  }
+  if (anyItem) await rememberThumb(cat, anyItem, true);
 }
 
 /* Fetch missing thumbnails politely — two at a time with a stagger, since
@@ -696,7 +722,9 @@ const thumbQueue = [];
 let thumbRunning = 0;
 
 function queueThumb(cat) {
-  if (cat === "any" || catThumbs[cat] || thumbQueue.includes(cat)) return;
+  /* a URL-only entry is still worth upgrading to stored bytes */
+  if (cat === "any" || catThumbs[cat]?.startsWith("data:")) return;
+  if (thumbQueue.includes(cat)) return;
   thumbQueue.push(cat);
   pumpThumbs();
 }
@@ -709,20 +737,8 @@ async function pumpThumbs() {
   const cat = thumbQueue.shift();
   thumbRunning++;
   try {
-    const candidates = weightedOrder(
-      PROVIDERS.filter((p) => p.enabled() && p.supports(cat) && providerAvailable(p))
-    ).slice(0, 2);
-    for (const provider of candidates) {
-      try {
-        const items = (await provider.fetchPool(cat)).filter((i) => thumbSource(i));
-        /* try a few, since a single dud would leave the tile blank forever */
-        for (const item of items.slice(0, 3)) {
-          await rememberThumb(cat, item);
-          if (catThumbs[cat]) break;
-        }
-        if (catThumbs[cat]) break;
-      } catch { /* try the next provider */ }
-    }
+    await captureThumb(cat);
+  } catch { /* leave it for the next time the panel opens */
   } finally {
     thumbRunning--;
     setTimeout(pumpThumbs, 600);
