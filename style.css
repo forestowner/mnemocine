@@ -442,7 +442,8 @@ kbd {
   animation: spin 1.1s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+/* counter-clockwise, following the direction the arrowhead points */
+@keyframes spin { to { transform: rotate(-360deg); } }
 
 /* the print on its mat */
 
