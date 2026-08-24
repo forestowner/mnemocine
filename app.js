@@ -463,6 +463,7 @@ async function loadSlot(index) {
           src: srcId,
         };
         slot.rotateBtn.hidden = !embedFor(slot.current);
+        rememberThumb(cat, item); // free thumbnails as you browse — already proven to render
         updateDownloadHint();
         scheduleCommit();
         return;
@@ -559,7 +560,6 @@ async function renderStored(slot, c) {
     slot.srcSelect.value = c.src;
   }
   syncCatOptions(slot);
-  fitSelect(slot.select);
   fitSelect(slot.srcSelect);
   slot.current = c;
   try {
@@ -594,6 +594,201 @@ histBack.addEventListener("click", () => showHistory(-1));
 histFwd.addEventListener("click", () => showHistory(1));
 
 /* ---------- boot ---------- */
+
+/* ---------- visual category picker ---------- */
+
+/* One frozen thumbnail per category, kept forever once captured, so each
+   category keeps a stable face instead of flickering on every visit. */
+const THUMBS_KEY = "mnemocine.catThumbs.v2";
+const GROUPS_KEY = "mnemocine.catGroups.v1";
+
+let catThumbs = {};
+try { catThumbs = JSON.parse(localStorage.getItem(THUMBS_KEY)) || {}; } catch { /* fresh */ }
+
+let groupOpen = {};
+try { groupOpen = JSON.parse(localStorage.getItem(GROUPS_KEY)) || {}; } catch { /* fresh */ }
+
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full — fine */ }
+}
+
+/* Deliberately no URL rewriting to shrink these: hand-built sizes get
+   rejected (Wikimedia refuses arbitrary thumb widths, archive.org's IIIF
+   refuses some too, and a broken tile is worse than a large one). Instead
+   take the provider's own smaller rendition when it offers one. */
+function thumbSource(item) {
+  return item?.fallback || item?.img || null;
+}
+
+/* Only cache a URL that actually renders, so a tile is never permanently
+   blank — this runs once per category, ever. */
+function loads(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const timer = setTimeout(() => resolve(false), 10000);
+    img.onload = () => { clearTimeout(timer); resolve(true); };
+    img.onerror = () => { clearTimeout(timer); resolve(false); };
+    img.src = url;
+  });
+}
+
+function paintTile(cat) {
+  const url = catThumbs[cat];
+  if (!url) return;
+  for (const s of slots) {
+    const tile = s.panel?.querySelector(`.cat-tile[data-cat="${CSS.escape(cat)}"]`);
+    if (tile) tile.style.backgroundImage = `url("${url}")`;
+  }
+}
+
+function rememberThumb(cat, item) {
+  const url = thumbSource(item);
+  if (!cat || cat === "any" || catThumbs[cat] || !url) return;
+  catThumbs[cat] = url;
+  saveJSON(THUMBS_KEY, catThumbs);
+  paintTile(cat);
+}
+
+/* Fetch missing thumbnails politely — two at a time with a stagger, since
+   a group expanding could otherwise fire a dozen requests at one archive. */
+const thumbQueue = [];
+let thumbRunning = 0;
+
+function queueThumb(cat) {
+  if (cat === "any" || catThumbs[cat] || thumbQueue.includes(cat)) return;
+  thumbQueue.push(cat);
+  pumpThumbs();
+}
+
+async function pumpThumbs() {
+  /* one at a time, unhurried: filling 45 tiles is a background nicety, and
+     firing them in parallel gets us rate-limited (Commons starts refusing
+     after roughly a dozen rapid requests) */
+  if (thumbRunning >= 1 || !thumbQueue.length) return;
+  const cat = thumbQueue.shift();
+  thumbRunning++;
+  try {
+    const candidates = weightedOrder(
+      PROVIDERS.filter((p) => p.enabled() && p.supports(cat) && providerAvailable(p))
+    ).slice(0, 2);
+    for (const provider of candidates) {
+      try {
+        const items = (await provider.fetchPool(cat)).filter((i) => thumbSource(i));
+        /* try a few, since a single dud would leave the tile blank forever */
+        for (const item of items.slice(0, 3)) {
+          if (await loads(thumbSource(item))) { rememberThumb(cat, item); break; }
+        }
+        if (catThumbs[cat]) break;
+      } catch { /* try the next provider */ }
+    }
+  } finally {
+    thumbRunning--;
+    setTimeout(pumpThumbs, 600);
+  }
+}
+
+function makeTile(slot, id, label) {
+  const tile = document.createElement("button");
+  tile.type = "button";
+  tile.className = "cat-tile";
+  tile.dataset.cat = id;
+  const span = document.createElement("span");
+  span.className = "tile-label";
+  span.textContent = label;
+  tile.append(span);
+  if (catThumbs[id]) tile.style.backgroundImage = `url("${catThumbs[id]}")`;
+  tile.addEventListener("click", () => {
+    if (tile.disabled) return;
+    slot.select.value = id;
+    slot.select.dispatchEvent(new Event("change"));
+    closePicker(slot);
+  });
+  return tile;
+}
+
+function buildPicker(slot) {
+  const panel = slot.panel;
+  panel.replaceChildren();
+
+  const anyTile = makeTile(slot, "any", "Anything");
+  anyTile.classList.add("any");
+  panel.append(anyTile);
+
+  for (const group of CATEGORY_GROUPS) {
+    const wrap = document.createElement("div");
+    wrap.className = "cat-group";
+    wrap.dataset.group = group.label;
+    /* open the group holding the current pick, so the panel lands on
+       something visual rather than five collapsed headers */
+    const holdsCurrent = group.cats.some((c) => c.id === slot.select.value);
+    const open = groupOpen[group.label] ?? holdsCurrent;
+    wrap.dataset.open = String(open);
+
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "cat-group-head";
+    const chev = document.createElement("span");
+    chev.className = "chev";
+    chev.textContent = "▶";
+    const name = document.createElement("span");
+    name.textContent = group.label;
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = group.cats.length;
+    head.append(chev, name, count);
+    head.addEventListener("click", () => {
+      const nowOpen = wrap.dataset.open !== "true";
+      wrap.dataset.open = String(nowOpen);
+      groupOpen[group.label] = nowOpen;
+      saveJSON(GROUPS_KEY, groupOpen);
+      if (nowOpen) group.cats.forEach((c) => queueThumb(c.id));
+    });
+
+    const tiles = document.createElement("div");
+    tiles.className = "cat-tiles";
+    for (const c of group.cats) tiles.append(makeTile(slot, c.id, c.label));
+
+    wrap.append(head, tiles);
+    panel.append(wrap);
+    if (open) group.cats.forEach((c) => queueThumb(c.id));
+  }
+  syncTiles(slot);
+}
+
+/* Mirror the <select>'s state onto the tiles: which is current, and which
+   the pinned source can't serve. */
+function syncTiles(slot) {
+  const current = slot.select.value;
+  for (const tile of slot.panel.querySelectorAll(".cat-tile")) {
+    const id = tile.dataset.cat;
+    const opt = [...slot.select.options].find((o) => o.value === id);
+    tile.disabled = !!opt?.disabled;
+    tile.setAttribute("aria-current", String(id === current));
+    if (catThumbs[id] && !tile.style.backgroundImage) {
+      tile.style.backgroundImage = `url("${catThumbs[id]}")`;
+    }
+  }
+  slot.trigger.textContent =
+    slot.select.options[slot.select.selectedIndex]?.textContent || "Anything";
+}
+
+function closePicker(slot) {
+  slot.panel.hidden = true;
+  slot.trigger.setAttribute("aria-expanded", "false");
+}
+
+function openPicker(slot) {
+  for (const other of slots) if (other !== slot) closePicker(other);
+  syncTiles(slot);
+  /* retry anything still missing — a tile whose fetch failed earlier (rate
+     limit, flaky archive) gets another go each time the panel opens */
+  for (const group of CATEGORY_GROUPS) {
+    const wrap = slot.panel.querySelector(`.cat-group[data-group="${CSS.escape(group.label)}"]`);
+    if (wrap?.dataset.open === "true") group.cats.forEach((c) => queueThumb(c.id));
+  }
+  slot.panel.hidden = false;
+  slot.trigger.setAttribute("aria-expanded", "true");
+}
 
 /* A <select> sizes itself to its longest option; fit it to the chosen one
    so the chevron sits right after the text. */
@@ -636,8 +831,8 @@ function syncCatOptions(slot) {
   }
   if (provider && !provider.supports(slot.select.value)) {
     slot.select.value = "any";
-    fitSelect(slot.select);
   }
+  if (slot.panel) syncTiles(slot);
 }
 
 function buildSlots() {
@@ -694,17 +889,26 @@ function buildSlots() {
       titleLink: el.querySelector(".title a"),
       source: el.querySelector(".source"),
       rotateBtn: el.querySelector(".rotate3d"),
+      trigger: el.querySelector(".cat-trigger"),
+      panel: el.querySelector(".cat-panel"),
       viewer: null,
       run: 0,
     };
     syncCatOptions(slot);
-    fitSelect(select);
+    buildPicker(slot);
     fitSelect(srcSelect);
+
+    slot.trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (slot.panel.hidden) openPicker(slot);
+      else closePicker(slot);
+    });
+    slot.panel.addEventListener("click", (e) => e.stopPropagation());
     slot.rotateBtn.addEventListener("click", () => toggleViewer(slot));
     initZoom(slot);
 
     select.addEventListener("change", () => {
-      fitSelect(select);
+      syncTiles(slot);
       saveSlots();
       loadSlot(i);
     });
@@ -942,11 +1146,13 @@ document.addEventListener("click", (e) => {
   if (!aboutPanel.hidden && e.target instanceof Node && !aboutPanel.contains(e.target)) {
     setAbout(false);
   }
+  slots.forEach(closePicker);
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     if (!aboutPanel.hidden) setAbout(false);
+    slots.forEach(closePicker);
     return;
   }
   if (e.repeat) return;

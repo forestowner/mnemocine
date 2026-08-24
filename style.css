@@ -234,6 +234,167 @@ kbd {
   pointer-events: none;
 }
 
+/* ---------- visual category picker ---------- */
+
+/* the native <select> stays in the DOM as the state model — every other
+   feature (history restore, source pinning, saved prefs) reads it */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cat-picker { position: relative; display: inline-flex; }
+
+.cat-trigger {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.cat-trigger::after {
+  content: "\25be";
+  font-size: 8px;
+  margin-left: 5px;
+}
+
+.cat-trigger:hover,
+.cat-trigger[aria-expanded="true"] { color: var(--accent); }
+
+.cat-panel {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  z-index: 20;
+  width: max(240px, 100%);
+  max-height: 62vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+  padding: 6px;
+}
+
+.cat-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 9px 4px 7px;
+  text-align: left;
+}
+
+.cat-group-head:hover { color: var(--ink); }
+
+.cat-group-head .chev {
+  font-size: 8px;
+  transition: transform 0.15s ease;
+}
+
+.cat-group[data-open="true"] .cat-group-head .chev { transform: rotate(90deg); }
+
+.cat-group-head .count { margin-left: auto; opacity: 0.6; font-size: 9px; }
+
+.cat-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+.cat-group[data-open="false"] .cat-tiles { display: none; }
+
+/* Pinterest/ArtStation pattern: image as background, label over a scrim */
+.cat-tile {
+  position: relative;
+  height: 68px; /* two-line labels need the headroom */
+  border: 1px solid transparent;
+  background-color: var(--mat);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  display: block;
+  text-align: left;
+}
+
+.cat-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.28) 55%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+.cat-tile .tile-label {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 5px;
+  font-family: var(--sans);
+  font-size: 9px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.cat-tile:hover { border-color: var(--accent); }
+
+.cat-tile:hover::before { background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.05)); }
+
+.cat-tile[aria-current="true"] { border-color: var(--accent); }
+
+.cat-tile[aria-current="true"] .tile-label { color: var(--accent); }
+
+.cat-tile[disabled] { opacity: 0.28; cursor: default; }
+
+.cat-tile[disabled]:hover { border-color: transparent; }
+
+/* "Anything" sits above the groups — it is not inside the tile grid, and
+   a bare <button> shrinks to its content, so it needs an explicit width */
+.cat-tile.any {
+  width: 100%;
+  height: 34px;
+  background: var(--mat);
+  border-color: var(--line);
+  margin-bottom: 2px;
+}
+
+.cat-tile.any::before { background: none; }
+
+.cat-tile.any .tile-label {
+  color: var(--ink);
+  bottom: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  text-shadow: none;
+}
+
+.cat-tile.any[aria-current="true"] .tile-label { color: var(--accent); }
+
 .reroll {
   font-size: 13px;
   line-height: 1;
@@ -414,6 +575,8 @@ kbd {
   }
   .action { padding: 7px 10px; }
   .about { top: 46px; left: 16px; right: 16px; max-width: none; }
+  /* the trigger is narrow on a phone, so size the panel to the screen */
+  .cat-panel { width: min(320px, calc(100vw - 32px)); max-height: 70vh; }
 }
 
 @media (max-height: 480px) {
