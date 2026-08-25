@@ -463,7 +463,6 @@ async function loadSlot(index) {
           src: srcId,
         };
         slot.rotateBtn.hidden = !embedFor(slot.current);
-        rememberThumb(cat, item); // free thumbnails as you browse — already proven to render
         updateDownloadHint();
         scheduleCommit();
         return;
@@ -597,13 +596,11 @@ histFwd.addEventListener("click", () => showHistory(1));
 
 /* ---------- visual category picker ---------- */
 
-/* One frozen thumbnail per category, kept forever once captured, so each
-   category keeps a stable face instead of flickering on every visit. */
-const THUMBS_KEY = "mnemocine.catThumbs.v3";
+/* Tile thumbnails ship with the site as thumbs/<category>.jpg, built once
+   by scripts/build-thumbs.mjs. Nothing is fetched or cached at runtime:
+   the browser loads a 16KB file per tile, and collapsed groups are
+   display:none so their images are never requested at all. */
 const GROUPS_KEY = "mnemocine.catGroups.v1";
-
-let catThumbs = {};
-try { catThumbs = JSON.parse(localStorage.getItem(THUMBS_KEY)) || {}; } catch { /* fresh */ }
 
 let groupOpen = {};
 try { groupOpen = JSON.parse(localStorage.getItem(GROUPS_KEY)) || {}; } catch { /* fresh */ }
@@ -612,138 +609,8 @@ function saveJSON(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full — fine */ }
 }
 
-/* Deliberately no URL rewriting to shrink these: hand-built sizes get
-   rejected (Wikimedia refuses arbitrary thumb widths, archive.org's IIIF
-   refuses some too, and a broken tile is worse than a large one). Instead
-   take the provider's own smaller rendition when it offers one. */
-function thumbSource(item) {
-  return item?.fallback || item?.img || null;
-}
+const thumbFor = (id) => `thumbs/${id}.jpg`;
 
-const THUMB_W = 220;
-const THUMB_H = 124;
-
-function loadImg(url, crossOrigin) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    if (crossOrigin) img.crossOrigin = "anonymous";
-    const timer = setTimeout(() => resolve(null), 12000);
-    img.onload = () => { clearTimeout(timer); resolve(img); };
-    img.onerror = () => { clearTimeout(timer); resolve(null); };
-    img.src = url;
-  });
-}
-
-/* Download the picture once, shrink it here, and keep the bytes — so the
-   tile never touches the network again. Needs a CORS-clean image to read
-   the canvas back; the two archives that send no CORS header fall back to
-   referencing their URL (see storeThumb). */
-async function shrinkToDataUrl(url) {
-  const img = await loadImg(url, true);
-  if (!img?.naturalWidth) return null;
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = THUMB_W;
-    canvas.height = THUMB_H;
-    const ctx = canvas.getContext("2d");
-    const scale = Math.max(THUMB_W / img.naturalWidth, THUMB_H / img.naturalHeight);
-    const w = img.naturalWidth * scale;
-    const h = img.naturalHeight * scale;
-    ctx.drawImage(img, (THUMB_W - w) / 2, (THUMB_H - h) / 2, w, h); // cover-crop
-    return canvas.toDataURL("image/jpeg", 0.7);
-  } catch {
-    return null; // tainted canvas — host sent no CORS header
-  }
-}
-
-function paintTile(cat) {
-  const url = catThumbs[cat];
-  if (!url) return;
-  for (const s of slots) {
-    const tile = s.panel?.querySelector(`.cat-tile[data-cat="${CSS.escape(cat)}"]`);
-    if (tile) tile.style.backgroundImage = `url("${url}")`;
-  }
-}
-
-/* Prefer stored bytes; fall back to referencing the URL only when the host
-   won't allow reading the pixels back (the Met, Cleveland). Either way the
-   value is only kept once it is known to render. */
-function storeThumb(cat, value) {
-  catThumbs[cat] = value;
-  saveJSON(THUMBS_KEY, catThumbs);
-  paintTile(cat);
-}
-
-/* Stores bytes when it can. A URL reference is only accepted with
-   allowUrl — otherwise an image that happens to come from one of the
-   three CORS-blocked hosts would claim the slot and stop us ever storing
-   real bytes from a readable archive. Returns true once bytes are held. */
-async function rememberThumb(cat, item, allowUrl = false) {
-  if (!cat || cat === "any") return false;
-  if (catThumbs[cat]?.startsWith("data:")) return true; // already have bytes
-  /* Try both renditions — a provider's smaller one isn't always the
-     CORS-clean one (archive.org's services/img sends no header while its
-     IIIF endpoint does). */
-  const candidates = [...new Set([item?.fallback, item?.img].filter(Boolean))];
-  for (const url of candidates) {
-    const data = await shrinkToDataUrl(url);
-    if (data) { storeThumb(cat, data); return true; }
-  }
-  if (!allowUrl || catThumbs[cat]) return false;
-  for (const url of candidates) {
-    if (await loadImg(url, false)) { storeThumb(cat, url); return false; }
-  }
-  return false;
-}
-
-/* Walk the archives that serve this category until one yields a readable
-   image; only settle for a URL reference once none of them can. */
-async function captureThumb(cat) {
-  const providers = weightedOrder(
-    PROVIDERS.filter((p) => p.enabled() && p.supports(cat) && providerAvailable(p))
-  ).slice(0, 4);
-  let anyItem = null;
-  for (const provider of providers) {
-    let items = [];
-    try {
-      items = (await provider.fetchPool(cat)).filter((i) => thumbSource(i)).slice(0, 2);
-    } catch { continue; }
-    for (const item of items) {
-      anyItem = anyItem || item;
-      if (await rememberThumb(cat, item)) return;
-    }
-  }
-  if (anyItem) await rememberThumb(cat, anyItem, true);
-}
-
-/* Fetch missing thumbnails politely — two at a time with a stagger, since
-   a group expanding could otherwise fire a dozen requests at one archive. */
-const thumbQueue = [];
-let thumbRunning = 0;
-
-function queueThumb(cat) {
-  /* a URL-only entry is still worth upgrading to stored bytes */
-  if (cat === "any" || catThumbs[cat]?.startsWith("data:")) return;
-  if (thumbQueue.includes(cat)) return;
-  thumbQueue.push(cat);
-  pumpThumbs();
-}
-
-async function pumpThumbs() {
-  /* one at a time, unhurried: filling 45 tiles is a background nicety, and
-     firing them in parallel gets us rate-limited (Commons starts refusing
-     after roughly a dozen rapid requests) */
-  if (thumbRunning >= 1 || !thumbQueue.length) return;
-  const cat = thumbQueue.shift();
-  thumbRunning++;
-  try {
-    await captureThumb(cat);
-  } catch { /* leave it for the next time the panel opens */
-  } finally {
-    thumbRunning--;
-    setTimeout(pumpThumbs, 600);
-  }
-}
 
 function makeTile(slot, id, label) {
   const tile = document.createElement("button");
@@ -754,7 +621,7 @@ function makeTile(slot, id, label) {
   span.className = "tile-label";
   span.textContent = label;
   tile.append(span);
-  if (catThumbs[id]) tile.style.backgroundImage = `url("${catThumbs[id]}")`;
+  tile.style.backgroundImage = `url("${thumbFor(id)}")`;
   tile.addEventListener("click", () => {
     if (tile.disabled) return;
     slot.select.value = id;
@@ -799,7 +666,6 @@ function buildPicker(slot) {
       wrap.dataset.open = String(nowOpen);
       groupOpen[group.label] = nowOpen;
       saveJSON(GROUPS_KEY, groupOpen);
-      if (nowOpen) group.cats.forEach((c) => queueThumb(c.id));
     });
 
     const tiles = document.createElement("div");
@@ -808,7 +674,6 @@ function buildPicker(slot) {
 
     wrap.append(head, tiles);
     panel.append(wrap);
-    if (open) group.cats.forEach((c) => queueThumb(c.id));
   }
   syncTiles(slot);
 }
@@ -822,9 +687,6 @@ function syncTiles(slot) {
     const opt = [...slot.select.options].find((o) => o.value === id);
     tile.disabled = !!opt?.disabled;
     tile.setAttribute("aria-current", String(id === current));
-    if (catThumbs[id] && !tile.style.backgroundImage) {
-      tile.style.backgroundImage = `url("${catThumbs[id]}")`;
-    }
   }
   slot.trigger.textContent =
     slot.select.options[slot.select.selectedIndex]?.textContent || "Anything";
@@ -838,12 +700,6 @@ function closePicker(slot) {
 function openPicker(slot) {
   for (const other of slots) if (other !== slot) closePicker(other);
   syncTiles(slot);
-  /* retry anything still missing — a tile whose fetch failed earlier (rate
-     limit, flaky archive) gets another go each time the panel opens */
-  for (const group of CATEGORY_GROUPS) {
-    const wrap = slot.panel.querySelector(`.cat-group[data-group="${CSS.escape(group.label)}"]`);
-    if (wrap?.dataset.open === "true") group.cats.forEach((c) => queueThumb(c.id));
-  }
   slot.panel.hidden = false;
   slot.trigger.setAttribute("aria-expanded", "true");
 }
