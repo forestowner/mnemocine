@@ -65,12 +65,24 @@ that set, history survives page reloads, and changing anything while
 viewing an old set branches from there like an undo stack.
 
 Categories are picked from a visual panel: collapsible groups, each
-category a tile with a thumbnail behind its label. A tile's thumbnail is
-captured once — the first image that category serves, kept in
-`localStorage` and never rerolled — so each category keeps a stable face.
-Tiles fill in as you browse, and any still missing are fetched one at a
-time in the background whenever the panel is open. The underlying
-`<select>` is still there, hidden, as the state model.
+category a tile with a thumbnail behind its label. The thumbnails ship
+with the site as `thumbs/<category>.jpg` — 300×170, about 16KB each,
+715KB for all 44 — so they appear instantly and nothing is fetched or
+cached at runtime. Collapsed groups are `display:none`, so only the group
+you have open loads at all. The underlying `<select>` is still there,
+hidden, as the state model.
+
+To rebuild the tiles (or refresh one you don't like):
+
+```
+node scripts/build-thumbs.mjs            # fills in anything missing
+node scripts/build-thumbs.mjs textures   # replaces just this one
+```
+
+It picks each image using that category's own Commons query, crops it
+with macOS `sips` (no dependencies), and records every source in
+[thumbs/CREDITS.md](thumbs/CREDITS.md). Existing files are left alone
+unless you name them, so tiles you like stay put.
 
 Categories are organized by practice intent, in five groups:
 
