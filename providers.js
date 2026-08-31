@@ -442,14 +442,87 @@ const PROVIDERS = [
       const { variant } = pickVariant(this.id, cat);
       const key = encodeURIComponent(window.ARCHIVE_KEYS.tmdb);
       const page = 1 + rnd(12);
-      const url =
+      const list = await getJSON(
         `https://api.themoviedb.org/3/discover/movie?api_key=${key}` +
-        `&include_adult=false&page=${page}&${variant}`;
-      const data = await getJSON(url);
-      return (data?.results ?? [])
+        `&include_adult=false&page=${page}&${variant}`
+      );
+      const results = list?.results ?? [];
+      if (!results.length) return [];
+
+      /* A film's own /images set is where the real frames are. A movie's
+         single `backdrop_path` is the curated hero image, which is usually
+         key art — title treatments, cast composites — not a shot from the
+         film. Within /images, the textless entries (no language tag) are
+         the frames; anything carrying a language is artwork with type on
+         it. One film can offer 80 of them at 3840x2160. */
+      const chosen = [];
+      const pool = [...results];
+      while (chosen.length < 4 && pool.length) {
+        chosen.push(pool.splice(rnd(pool.length), 1)[0]);
+      }
+
+      const perFilm = await Promise.all(
+        chosen.map(async (m) => {
+          try {
+            const imgs = await getJSON(
+              `https://api.themoviedb.org/3/movie/${m.id}/images?api_key=${key}`
+            );
+            const year = (m.release_date || "").slice(0, 4);
+            const textless = (imgs?.backdrops ?? []).filter(
+              (b) =>
+                !b.iso_639_1 &&                 // no title treatment on it
+                (b.aspect_ratio || 0) >= 1.7 && // not a cropped promo panel
+                (b.width || 0) >= 1280
+            );
+            /* Two signals separate frames from promotional artwork, since
+               TMDB doesn't label them:
+
+               1. Nobody votes on frame #47 of a bulk upload, whereas the
+                  painted key art is exactly what people do vote for. So
+                  vote_count 0 is a good "not curated art" marker — and
+                  taking TMDB's default order was actively wrong, because
+                  it sorts by votes and hands back the artwork first.
+               2. Frames arrive in bulk at one size, so the largest
+                  same-size cluster is nearly all film.
+
+               A film with only a handful of unvoted frames is one whose
+               uploads are mostly art (To Kill a Mockingbird has 4, and
+               served a colourised composite), so it sits this round out
+               and the other films in the batch cover for it. */
+            const unvoted = textless.filter((b) => !b.vote_count);
+            const bySize = new Map();
+            for (const b of unvoted) {
+              const size = `${b.width}x${b.height}`;
+              bySize.set(size, [...(bySize.get(size) ?? []), b]);
+            }
+            const biggest = [...bySize.values()].sort((a, b) => b.length - a.length)[0];
+            const candidates = biggest?.length >= 6 ? biggest : [];
+            const picked = [];
+            const bag = [...candidates];
+            while (picked.length < 8 && bag.length) {
+              picked.push(bag.splice(rnd(bag.length), 1)[0]);
+            }
+            return picked
+              .map((b) => ({
+                img: `https://image.tmdb.org/t/p/w1280${b.file_path}`,
+                fallback: `https://image.tmdb.org/t/p/w780${b.file_path}`,
+                title: [asText(m.title), year].filter(Boolean).join(" "),
+                link: `https://www.themoviedb.org/movie/${m.id}`,
+              }));
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      const frames = perFilm.flat();
+      if (frames.length) return frames;
+
+      /* Nothing textless on offer — fall back to hero backdrops rather
+         than leaving the slot empty. */
+      return results
         .filter((m) => m.backdrop_path)
         .map((m) => ({
-          /* w1280 is a full frame at plenty of resolution for study */
           img: `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`,
           fallback: `https://image.tmdb.org/t/p/w780${m.backdrop_path}`,
           title: [asText(m.title), (m.release_date || "").slice(0, 4)]
