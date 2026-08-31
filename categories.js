@@ -21,6 +21,11 @@
 
 const LOC_CAT = 'incategory:"Images from the Library of Congress"';
 
+/* Keeps promotional artwork out of the cinema categories — the request is
+   for frames and set photography, not posters. */
+const NO_PROMO =
+  ' -intitle:poster -intitle:"lobby card" -intitle:magazine -intitle:advertisement';
+
 const CATEGORY_GROUPS = [
   {
     label: "Artist",
@@ -60,10 +65,16 @@ const CATEGORY_GROUPS = [
       { id: "lighting", label: "Lighting" },
       { id: "atmosphere", label: "Atmosphere & weather", modern: true },
       { id: "biome", label: "Biome & wilderness", modern: true },
-      { id: "cinema", label: "Cinema" },
       { id: "street", label: "Documentary & street" },
       { id: "earlycolor", label: "Early color & photochrom" },
       { id: "photoportraits", label: "Portrait photography" },
+    ],
+  },
+  {
+    label: "Cinematography",
+    cats: [
+      { id: "modern", label: "Modern cinema", modern: true },
+      { id: "cinema", label: "Public domain cinema" },
     ],
   },
   {
@@ -261,19 +272,49 @@ const RECIPES = {
     wm: ["intitle:dunes", "rainforest", "intitle:glacier", '"salt marsh"'],
     ia: ["subject:(deserts OR glaciers)"],
   },
-  /* Film frames are copyrighted for anything modern, so this draws on what
-     is genuinely free: pre-1929 films, US films whose copyright lapsed for
-     non-renewal, and publicity material published without notice. Expect
-     silent era through mid-century — lobby cards, publicity stills and
-     early frame grabs, not contemporary cinematography. */
+  /* ---------- Cinematography ----------
+     Modern film frames come from TMDB, whose backdrops are stills from
+     the films themselves — the reason this category exists, since
+     contemporary colour grading and lighting are what the public-domain
+     record can't show. TMDB needs a free key; without one the provider
+     stays dormant and only Public domain cinema answers here.
+
+     Variants aim at different looks rather than different decades: the
+     genre filters are a blunt but effective way to vary palette. */
+  modern: {
+    tmdb: [
+      "sort_by=vote_count.desc&vote_count.gte=800",
+      "sort_by=vote_average.desc&vote_count.gte=2000&with_genres=878", // sci-fi
+      "sort_by=vote_average.desc&vote_count.gte=1000&with_genres=18",  // drama
+      "sort_by=vote_count.desc&vote_count.gte=500&with_genres=80",     // crime
+      "sort_by=vote_count.desc&vote_count.gte=500&with_genres=16",     // animation
+      "sort_by=vote_count.desc&vote_count.gte=400&primary_release_date.gte=2015-01-01",
+    ],
+  },
+
+  /* Public-domain film: pre-1929, US films whose copyright lapsed for
+     non-renewal, and material published without notice. Silent era
+     through mid-century — not monochrome only, since lobby cards were
+     colour-printed and many frames were hand-tinted. */
   cinema: {
-    /* Not "publicity still" or "movie still" — on Commons those are mostly
-       star headshots. These three return scenes: lobby cards are scene
-       cards from named films, `screenshot film` is literal frame grabs
-       (1895 The Derby, 1901 Employees Leaving the Factory), and "film
-       still" is Biograph/Pathé scene stills. */
-    wm: ['intitle:"lobby card"', "intitle:screenshot film", '"film still"'],
-    loc: [`${LOC_CAT} "motion picture"`, `${LOC_CAT} intitle:film`],
+    /* Frames and scene stills only. Every query is a phrase naming a film,
+       which is what keeps out the two things that kept leaking in: film as
+       photographic stock ("family films", reels) and promotional artwork.
+       NO_PROMO drops the rest of the latter.
+
+       Rejected after sampling: "publicity still" and "movie still" (star
+       headshots), "on the set of" and "during the filming of" (postcards
+       and unrelated snapshots), lobby cards (often poster artwork rather
+       than a photographed scene), and the Library of Congress film
+       holdings entirely — those are cinema exteriors and film-exchange
+       offices, not scenes. */
+    wm: [
+      `"still from the film"${NO_PROMO}`,
+      `"scene from the film"${NO_PROMO}`,
+      `"production still"${NO_PROMO}`,
+      `"film still"${NO_PROMO}`,
+      `intitle:screenshot film${NO_PROMO}`,
+    ],
   },
   street: {
     loc: [`${LOC_CAT} "Farm Security Administration"`,

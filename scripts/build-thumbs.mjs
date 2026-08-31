@@ -32,8 +32,14 @@ new Function(
 ).call(sandbox, {});
 const { GROUPS, RECIPES } = sandbox;
 
-/* "objects" is the one category with no Commons recipe of its own. */
-const EXTRA_QUERIES = { objects: 'incategory:"Ceramics"' };
+/* Categories with no Commons recipe of their own still need a tile, so
+   give them a stand-in query. "modern" is served by TMDB at runtime, but
+   its images are copyrighted and can't ship in the repo — a colour-lit
+   still from Commons stands in for it. */
+const EXTRA_QUERIES = {
+  objects: 'incategory:"Ceramics"',
+  modern: "intitle:neon night",
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const UA = { "User-Agent": "mnemocine-thumbs/1.0 (one-off tile build)" };
