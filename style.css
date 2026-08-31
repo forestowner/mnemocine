@@ -561,11 +561,17 @@ kbd {
   color: var(--muted);
 }
 
-.source-logo {
-  height: 9px;
+/* TMDB's mark sits on the frame itself, bottom-right, small enough not to
+   interfere with reading the shot's colour or composition */
+.frame-mark {
+  position: absolute;
+  right: clamp(12px, 1.8vw, 26px);
+  bottom: clamp(12px, 1.8vw, 26px);
+  height: 16px;
   width: auto;
-  vertical-align: -1px;
-  margin-right: 5px;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  pointer-events: none;
 }
 
 .notice {
