@@ -166,11 +166,24 @@ async function showItem(slot, item) {
   }
 }
 
+/* TMDB's terms want their mark shown wherever their content is, so the
+   logo rides along with the source line — on screen and in downloads —
+   not only in the about panel. */
+const TMDB_LOGO_SRC = "tmdb-logo.svg";
+
 function setLabel(slot, { title, source, link }) {
   slot.titleLink.textContent = title;
   if (link) slot.titleLink.href = link;
   else slot.titleLink.removeAttribute("href");
-  slot.source.textContent = source;
+  slot.source.replaceChildren();
+  if (source === "TMDB") {
+    const logo = document.createElement("img");
+    logo.src = TMDB_LOGO_SRC;
+    logo.alt = "";
+    logo.className = "source-logo";
+    slot.source.append(logo);
+  }
+  slot.source.append(document.createTextNode(source));
 }
 
 /* ---------- zoom & pan within a slot ---------- */
@@ -941,6 +954,18 @@ async function downloadSet() {
   try {
     /* an open 3D viewer contributes its current camera view */
     const liveShots = await Promise.all(slots.map(captureViewer));
+    /* same-origin SVG, so drawing it keeps the canvas exportable. An SVG
+       needs explicit dimensions before it will draw. */
+    const tmdbLogo = items.some((c) => c.source === "TMDB")
+      ? await new Promise((resolve) => {
+          const img = new Image();
+          img.width = 176;
+          img.height = 76;
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = TMDB_LOGO_SRC;
+        })
+      : null;
     const images = await Promise.all(
       items.map((c, i) => liveShots[i] || exportPanelImage(c))
     );
@@ -1014,7 +1039,13 @@ async function downloadSet() {
       if ("letterSpacing" in ctx) ctx.letterSpacing = "3px";
       ctx.fillStyle = col.muted;
       ctx.font = `21px ${sans}`;
-      drawTruncated(ctx, c.source.toUpperCase(), x + 2, capY + 86, PW - 4);
+      /* the mark travels with the file, not just the page */
+      const logoW = c.source === "TMDB" && tmdbLogo ? 44 : 0;
+      if (logoW) {
+        ctx.drawImage(tmdbLogo, x + 2, capY + 71, logoW, 19);
+      }
+      drawTruncated(ctx, c.source.toUpperCase(), x + 2 + (logoW ? logoW + 10 : 0),
+        capY + 86, PW - 4 - logoW);
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     });
 
