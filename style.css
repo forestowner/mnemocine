@@ -120,6 +120,14 @@ body {
   padding-top: 9px;
 }
 
+/* TMDB's terms ask for their logo alongside the attribution */
+.tmdb-logo {
+  height: 15px;
+  width: auto;
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+
 .about a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 
 .about a:hover { color: var(--accent); }

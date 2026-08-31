@@ -13,7 +13,7 @@ window.ARCHIVE_KEYS = {
      paste the v3 key here). Unlike every other source, TMDB's images are
      studio copyright, shown under TMDB's API terms; the attribution in
      the about panel is part of those terms, so leave it in place. */
-  tmdb: "",
+  tmdb: "473bf59146d4244651bf820eba44f99c",
 
   /* Smithsonian's search API works, but their image host (ids.si.edu)
      stopped serving cross-origin browser requests — bot defense that
