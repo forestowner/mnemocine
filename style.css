@@ -561,6 +561,13 @@ kbd {
   color: var(--muted);
 }
 
+.source-logo {
+  height: 9px;
+  width: auto;
+  vertical-align: -1px;
+  margin-right: 5px;
+}
+
 .notice {
   grid-column: 1 / -1;
   align-self: center;
