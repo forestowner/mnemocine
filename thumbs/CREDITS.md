@@ -14,6 +14,7 @@ Commons; follow a link for that file's own licence and author.
 | `botanical` | Dr. Hope's elementa botanici ((178?)) (20898477650) | [source](https://commons.wikimedia.org/wiki/File:Dr._Hope%27s_elementa_botanici_((178%3F))_(20898477650).jpg) |
 | `brand` | Her Husband's Trademark (1922) - 4 | [source](https://commons.wikimedia.org/wiki/File:Her_Husband%27s_Trademark_(1922)_-_4.jpg) |
 | `charts` | Knee diagram-ar | [source](https://commons.wikimedia.org/wiki/File:Knee_diagram-ar.jpg) |
+| `cinema` | Mystery Broadcast lobby card 1943 | [source](https://commons.wikimedia.org/wiki/File:Mystery_Broadcast_lobby_card_1943.jpg) |
 | `costume` | Audrey Hepburn My Fair Lady Dress | [source](https://commons.wikimedia.org/wiki/File:Audrey_Hepburn_My_Fair_Lady_Dress.jpg) |
 | `creatures` | Vincent van Gogh - Head of a skeleton with a burning cigarette - Google Art Project | [source](https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Head_of_a_skeleton_with_a_burning_cigarette_-_Google_Art_Project.jpg) |
 | `curves` | Möbius strip | [source](https://commons.wikimedia.org/wiki/File:M%C3%B6bius_strip.jpg) |
