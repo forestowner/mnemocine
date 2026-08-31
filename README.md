@@ -94,6 +94,9 @@ Categories are organized by practice intent, in five groups:
   mammals, insects, marine life, zoological plates
 - **Photography** — props & still life, costume, lighting, atmosphere,
   biome, documentary & street, early color & photochrom, portrait photography
+- **Cinematography** — modern cinema (film frames via TMDB, for colour and
+  lighting study; needs a free key), public domain cinema (lobby cards,
+  early frame grabs, silent-era scene stills)
 - **Design** — typography & lettering, posters, brand marks & ex libris,
   layout & editorial, abstract, polyhedra & solids, curves & topology
   (Klein bottles, Möbius strips, minimal surfaces, fractals, Chladni
@@ -148,6 +151,7 @@ Wired up but **off by default**:
 |---|---|
 | Smithsonian Open Access | `api.si.edu` search works and the key is in [config.js](config.js), but every image on `ids.si.edu` now fails to load cross-origin in a browser (0/12 in testing) while returning a normal 200 to `curl` — their bot defense issues `TS…` cookies a browser won't replay on an image request. Set `smithsonianImages: true` in config.js to retest. |
 | Europeana | needs a free key — get one at <https://pro.europeana.eu/page/get-api> and paste it into [config.js](config.js) |
+| TMDB | needs a free key — <https://www.themoviedb.org/settings/api>. Powers **Modern cinema**, whose frames are studio copyright rather than open, shown under TMDB's API terms. The attribution line in the about panel is required by those terms; leave it in place. Without a key the category shows as unavailable and only Public domain cinema answers. |
 
 Note: anything in `config.js` ships with the site. If you deploy publicly,
 that includes your Smithsonian key — it's free and rate-limited, but if you

@@ -113,6 +113,13 @@ body {
 
 .about em { font-style: normal; letter-spacing: 0.04em; border-bottom: 1px solid var(--line); }
 
+.about .fineprint {
+  font-size: 10.5px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
 .about a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 
 .about a:hover { color: var(--accent); }

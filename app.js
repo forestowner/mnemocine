@@ -687,6 +687,15 @@ function syncTiles(slot) {
     const opt = [...slot.select.options].find((o) => o.value === id);
     tile.disabled = !!opt?.disabled;
     tile.setAttribute("aria-current", String(id === current));
+    /* say why a tile is unavailable rather than just greying it out */
+    if (tile.disabled) {
+      const dormant = !PROVIDERS.some((p) => p.enabled() && p.supports(id));
+      tile.title = dormant
+        ? "Needs an API key — see config.js"
+        : "This source doesn't cover this category";
+    } else {
+      tile.removeAttribute("title");
+    }
   }
   slot.trigger.textContent =
     slot.select.options[slot.select.selectedIndex]?.textContent || "Anything";
@@ -741,7 +750,12 @@ function syncCatOptions(slot) {
   const srcId = slot.srcSelect.value;
   const provider = srcId === "any" ? null : PROVIDERS.find((p) => p.id === srcId);
   for (const opt of slot.select.options) {
-    opt.disabled = provider ? !provider.supports(opt.value) : false;
+    /* With no source pinned, a category is still unavailable if every
+       archive that serves it is dormant — Modern cinema is TMDB-only, and
+       TMDB sits out until a key is pasted into config.js. */
+    opt.disabled = provider
+      ? !provider.supports(opt.value)
+      : !PROVIDERS.some((p) => p.enabled() && p.supports(opt.value));
   }
   if (provider && !provider.supports(slot.select.value)) {
     slot.select.value = "any";

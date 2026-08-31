@@ -426,6 +426,40 @@ const PROVIDERS = [
     },
   },
 
+  /* ---- TMDB (needs a free key) ------------------------------------------- */
+  /* The one source here whose images are copyrighted rather than open:
+     studio promotional frames, used under TMDB's API terms, which permit
+     display with attribution. Included because colour science and lighting
+     are exactly what the public-domain film record cannot show. Their CDN
+     sends `Access-Control-Allow-Origin: *`, so frames display fine. */
+  {
+    id: "tmdb",
+    name: "TMDB",
+    weight: 1,
+    enabled: () => !!window.ARCHIVE_KEYS?.tmdb,
+    supports(cat) { return providerSupports(this.id, cat); },
+    async fetchPool(cat) {
+      const { variant } = pickVariant(this.id, cat);
+      const key = encodeURIComponent(window.ARCHIVE_KEYS.tmdb);
+      const page = 1 + rnd(12);
+      const url =
+        `https://api.themoviedb.org/3/discover/movie?api_key=${key}` +
+        `&include_adult=false&page=${page}&${variant}`;
+      const data = await getJSON(url);
+      return (data?.results ?? [])
+        .filter((m) => m.backdrop_path)
+        .map((m) => ({
+          /* w1280 is a full frame at plenty of resolution for study */
+          img: `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`,
+          fallback: `https://image.tmdb.org/t/p/w780${m.backdrop_path}`,
+          title: [asText(m.title), (m.release_date || "").slice(0, 4)]
+            .filter(Boolean)
+            .join(" "),
+          link: `https://www.themoviedb.org/movie/${m.id}`,
+        }));
+    },
+  },
+
   /* ---- Science Museum Group (no key) ------------------------------------- */
   /* Their CloudFront blocks unknown user-agents, which reads as a 403 and
      looks like an auth wall — it isn't. A browser sends its own UA, so the
