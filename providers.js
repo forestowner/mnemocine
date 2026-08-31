@@ -506,6 +506,9 @@ const PROVIDERS = [
               .map((b) => ({
                 img: `https://image.tmdb.org/t/p/w1280${b.file_path}`,
                 fallback: `https://image.tmdb.org/t/p/w780${b.file_path}`,
+                /* the frame at full resolution — a film's TMDB page holds
+                   hundreds of images and no way to find this one */
+                imgLink: `https://image.tmdb.org/t/p/original${b.file_path}`,
                 title: [asText(m.title), year].filter(Boolean).join(" "),
                 link: `https://www.themoviedb.org/movie/${m.id}`,
               }));
@@ -525,6 +528,7 @@ const PROVIDERS = [
         .map((m) => ({
           img: `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`,
           fallback: `https://image.tmdb.org/t/p/w780${m.backdrop_path}`,
+          imgLink: `https://image.tmdb.org/t/p/original${m.backdrop_path}`,
           title: [asText(m.title), (m.release_date || "").slice(0, 4)]
             .filter(Boolean)
             .join(" "),
