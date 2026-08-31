@@ -60,6 +60,7 @@ const CATEGORY_GROUPS = [
       { id: "lighting", label: "Lighting" },
       { id: "atmosphere", label: "Atmosphere & weather", modern: true },
       { id: "biome", label: "Biome & wilderness", modern: true },
+      { id: "cinema", label: "Cinema" },
       { id: "street", label: "Documentary & street" },
       { id: "earlycolor", label: "Early color & photochrom" },
       { id: "photoportraits", label: "Portrait photography" },
@@ -259,6 +260,20 @@ const RECIPES = {
   biome: {
     wm: ["intitle:dunes", "rainforest", "intitle:glacier", '"salt marsh"'],
     ia: ["subject:(deserts OR glaciers)"],
+  },
+  /* Film frames are copyrighted for anything modern, so this draws on what
+     is genuinely free: pre-1929 films, US films whose copyright lapsed for
+     non-renewal, and publicity material published without notice. Expect
+     silent era through mid-century — lobby cards, publicity stills and
+     early frame grabs, not contemporary cinematography. */
+  cinema: {
+    /* Not "publicity still" or "movie still" — on Commons those are mostly
+       star headshots. These three return scenes: lobby cards are scene
+       cards from named films, `screenshot film` is literal frame grabs
+       (1895 The Derby, 1901 Employees Leaving the Factory), and "film
+       still" is Biograph/Pathé scene stills. */
+    wm: ['intitle:"lobby card"', "intitle:screenshot film", '"film still"'],
+    loc: [`${LOC_CAT} "motion picture"`, `${LOC_CAT} intitle:film`],
   },
   street: {
     loc: [`${LOC_CAT} "Farm Security Administration"`,
