@@ -175,16 +175,29 @@ function setLabel(slot, { title, source, link }) {
   slot.titleLink.textContent = title;
   if (link) slot.titleLink.href = link;
   else slot.titleLink.removeAttribute("href");
-  slot.source.replaceChildren();
-  if (source === "TMDB") {
-    const logo = document.createElement("img");
-    logo.src = TMDB_LOGO_SRC;
-    logo.alt = "";
-    logo.className = "source-logo";
-    slot.source.append(logo);
+  slot.source.textContent = source;
+  if (slot.mark) {
+    slot.mark.hidden = source !== "TMDB";
+    placeMark(slot);
   }
-  slot.source.append(document.createTextNode(source));
 }
+
+/* The frame is taller than a 16:9 still, so anchoring the mark to the
+   frame leaves it stranded on the mat below the picture. Anchor it to the
+   image's own bottom-right instead, clamped to the frame so a zoomed-in
+   image can't push it outside. */
+function placeMark(slot) {
+  const mark = slot.mark;
+  if (!mark || mark.hidden) return;
+  const fr = slot.frame.getBoundingClientRect();
+  const ir = slot.img.getBoundingClientRect();
+  if (!ir.width || !ir.height) return;
+  const inset = 12;
+  mark.style.right = `${Math.max(inset, fr.right - ir.right + inset)}px`;
+  mark.style.bottom = `${Math.max(inset, fr.bottom - ir.bottom + inset)}px`;
+}
+
+addEventListener("resize", () => slots.forEach(placeMark));
 
 /* ---------- zoom & pan within a slot ---------- */
 
@@ -463,6 +476,7 @@ async function loadSlot(index) {
         slot.frame.href = item.link;
         slot.img.alt = `${item.title} — ${provider.name}`;
         setLabel(slot, { title: item.title, source: provider.name, link: item.link });
+        placeMark(slot); // image rect is only final once it has rendered
         pushRecent(item.link);
         slot.current = {
           img: item.img,
@@ -581,6 +595,7 @@ async function renderStored(slot, c) {
     slot.frame.href = c.link;
     slot.img.alt = `${c.title} — ${c.source}`;
     setLabel(slot, { title: c.title, source: c.source, link: c.link });
+    placeMark(slot);
     slot.rotateBtn.hidden = !embedFor(c);
     updateDownloadHint();
   } catch {
@@ -827,6 +842,7 @@ function buildSlots() {
       frame: el.querySelector(".frame"),
       img: el.querySelector("img"),
       msg: el.querySelector(".frame-msg"),
+      mark: el.querySelector(".frame-mark"),
       titleLink: el.querySelector(".title a"),
       source: el.querySelector(".source"),
       rotateBtn: el.querySelector(".rotate3d"),
@@ -1003,7 +1019,20 @@ async function downloadSet() {
         const scale = Math.min((PW - 2 * m) / sw, (PH - 2 * m) / sh);
         const w = sw * scale;
         const h = sh * scale;
-        ctx.drawImage(img, sx, sy, sw, sh, x + (PW - w) / 2, y + (PH - h) / 2, w, h);
+        const ix = x + (PW - w) / 2;
+        const iy = y + (PH - h) / 2;
+        ctx.drawImage(img, sx, sy, sw, sh, ix, iy, w, h);
+        /* the mark sits on the picture, in its bottom-right corner */
+        if (c.source === "TMDB" && tmdbLogo) {
+          const lw = Math.min(150, w * 0.16);
+          const lh = lw * (76 / 176);
+          ctx.save();
+          ctx.globalAlpha = 0.9;
+          ctx.shadowColor = "rgba(0,0,0,0.55)";
+          ctx.shadowBlur = 8;
+          ctx.drawImage(tmdbLogo, ix + w - lw - 26, iy + h - lh - 26, lw, lh);
+          ctx.restore();
+        }
       } else {
         /* caption card — name the real reason */
         const cx = x + PW / 2;
@@ -1039,13 +1068,7 @@ async function downloadSet() {
       if ("letterSpacing" in ctx) ctx.letterSpacing = "3px";
       ctx.fillStyle = col.muted;
       ctx.font = `21px ${sans}`;
-      /* the mark travels with the file, not just the page */
-      const logoW = c.source === "TMDB" && tmdbLogo ? 44 : 0;
-      if (logoW) {
-        ctx.drawImage(tmdbLogo, x + 2, capY + 71, logoW, 19);
-      }
-      drawTruncated(ctx, c.source.toUpperCase(), x + 2 + (logoW ? logoW + 10 : 0),
-        capY + 86, PW - 4 - logoW);
+      drawTruncated(ctx, c.source.toUpperCase(), x + 2, capY + 86, PW - 4);
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     });
 
