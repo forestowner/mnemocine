@@ -510,7 +510,9 @@ const PROVIDERS = [
                    hundreds of images and no way to find this one */
                 imgLink: `https://image.tmdb.org/t/p/original${b.file_path}`,
                 title: [asText(m.title), year].filter(Boolean).join(" "),
-                link: `https://www.themoviedb.org/movie/${m.id}`,
+                /* the film's backdrop gallery, so the caption is a way
+                   into the rest of that film's frames */
+                link: `https://www.themoviedb.org/movie/${m.id}/images/backdrops`,
               }));
           } catch {
             return [];
@@ -532,7 +534,7 @@ const PROVIDERS = [
           title: [asText(m.title), (m.release_date || "").slice(0, 4)]
             .filter(Boolean)
             .join(" "),
-          link: `https://www.themoviedb.org/movie/${m.id}`,
+          link: `https://www.themoviedb.org/movie/${m.id}/images/backdrops`,
         }));
     },
   },
