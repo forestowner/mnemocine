@@ -171,6 +171,15 @@ async function showItem(slot, item) {
    not only in the about panel. */
 const TMDB_LOGO_SRC = "tmdb-logo.svg";
 
+/* Clicking the picture should land on the picture. Most archives' item
+   pages show the image itself, but a TMDB film page carries hundreds of
+   images with no way to find the one you were looking at, so those items
+   carry a direct link to the frame; the caption title still goes to the
+   film. */
+function frameHref(item) {
+  return item?.imgLink || item?.link || "";
+}
+
 function setLabel(slot, { title, source, link }) {
   slot.titleLink.textContent = title;
   if (link) slot.titleLink.href = link;
@@ -317,7 +326,7 @@ function stopViewer(slot) {
   }
   slot.viewerApi = null;
   slot.frame.draggable = true;
-  if (slot.current?.link) slot.frame.href = slot.current.link;
+  if (slot.current) slot.frame.href = frameHref(slot.current);
   slot.rotateBtn.setAttribute("aria-pressed", "false");
 }
 
@@ -473,7 +482,7 @@ async function loadSlot(index) {
         if (slot.run !== run) return;
         recordSuccess(provider);
         slot.el.dataset.state = "ready";
-        slot.frame.href = item.link;
+        slot.frame.href = frameHref(item);
         slot.img.alt = `${item.title} — ${provider.name}`;
         setLabel(slot, { title: item.title, source: provider.name, link: item.link });
         placeMark(slot); // image rect is only final once it has rendered
@@ -486,6 +495,7 @@ async function loadSlot(index) {
           source: provider.name,
           pid: provider.id,
           sfEmbed: item.sfEmbed || null,
+          imgLink: item.imgLink || null,
           cat,
           src: srcId,
         };
@@ -592,7 +602,7 @@ async function renderStored(slot, c) {
     await showItem(slot, c);
     if (slot.run !== run) return;
     slot.el.dataset.state = "ready";
-    slot.frame.href = c.link;
+    slot.frame.href = frameHref(c);
     slot.img.alt = `${c.title} — ${c.source}`;
     setLabel(slot, { title: c.title, source: c.source, link: c.link });
     placeMark(slot);
