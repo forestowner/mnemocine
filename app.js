@@ -17,6 +17,13 @@ let recent = [];
 try { recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { /* fresh start */ }
 const recentSet = new Set(recent);
 
+/* Keyed on the image, not the page it links to. Several TMDB frames share
+   one film page, so keying on the link marked every other frame from that
+   film as already-seen and skipped them. */
+function itemKey(item) {
+  return item?.img || item?.link || "";
+}
+
 function pushRecent(link) {
   if (!link || recentSet.has(link)) return;
   recentSet.add(link);
@@ -127,7 +134,7 @@ async function nextItem(provider, cat) {
     }
     while (pool.idx < pool.items.length) {
       const item = pool.items[pool.idx++];
-      if (!recentSet.has(item.link)) {
+      if (!recentSet.has(itemKey(item))) {
         storePool(key, pool);
         return item;
       }
@@ -486,7 +493,7 @@ async function loadSlot(index) {
         slot.img.alt = `${item.title} — ${provider.name}`;
         setLabel(slot, { title: item.title, source: provider.name, link: item.link });
         placeMark(slot); // image rect is only final once it has rendered
-        pushRecent(item.link);
+        pushRecent(itemKey(item));
         slot.current = {
           img: item.img,
           fallback: item.fallback,
