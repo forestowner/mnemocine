@@ -294,8 +294,20 @@ const PROVIDERS = [
     enabled: () => true,
     supports(cat) { return providerSupports(this.id, cat); },
     async fetchPool(cat) {
-      const { variant } = pickVariant(this.id, cat);
-      return commonsPool(variant);
+      const { effective } = pickVariant(this.id, cat);
+      const variants = RECIPES[effective]?.wm ?? [];
+      /* Draw from three of the category's queries at once. A pool built
+         from a single query is 25 photographs of the same noun, so Props
+         would serve two dozen vases before it ever reached the boots. */
+      const bag = [...variants];
+      const chosen = [];
+      while (chosen.length < 3 && bag.length) {
+        chosen.push(bag.splice(rnd(bag.length), 1)[0]);
+      }
+      const results = await Promise.all(
+        chosen.map((v) => commonsPool(v).catch(() => []))
+      );
+      return results.flat();
     },
   },
 
