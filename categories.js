@@ -306,8 +306,20 @@ const RECIPES = {
          `intitle:"crystal ball"${NO_ART}`,
          `intitle:lantern${NO_ART}`,
          `intitle:trophy${NO_ART}`,
-         `intitle:"trash can"${NO_ART}`,
-   ],
+   ,
+         `intitle:basketball${NO_ART}`,
+         `intitle:baseball${NO_ART}`,
+         `intitle:kite${NO_ART}`,
+         `intitle:chess${NO_ART}`,
+         `intitle:microscope${NO_ART}`,
+         `intitle:drums${NO_ART}`,
+         `intitle:"toy car"${NO_ART}`,
+         `intitle:xylophone${NO_ART}`,
+         `intitle:marbles${NO_ART}`,
+         `intitle:pinata${NO_ART}`,
+         `intitle:"birthday cake"${NO_ART}`,
+         `intitle:surfboard${NO_ART}`,
+         `intitle:dumbbell${NO_ART}`],
   },
   /* Set dressing rather than handheld props — the split follows the Sims
      buy-mode catalogue, which separates portable objects from the things
@@ -316,7 +328,7 @@ const RECIPES = {
      which are generic enough to search, unlike the game's item names.
      Scope is the Sims' Buy Mode, whole: appliances, comfort, surfaces,
      storage, lighting, electronics, kids, vehicles — a bicycle, a bed or
-     a trash can is as good a prop as a candlestick. Build Mode is
+     a bed is as good a prop as a candlestick. Build Mode is
      excluded, which is why fireplaces, staircases and fountains came back
      out: those are architecture, not things you place.
 
@@ -370,7 +382,11 @@ const RECIPES = {
          `intitle:car${NO_ART}`,
          `intitle:bicycle${NO_ART}`,
          `intitle:"wall clock"${NO_ART}`,
-   ],
+   ,
+         `intitle:jukebox${NO_ART}`,
+         `intitle:treadmill${NO_ART}`,
+         `intitle:swing${NO_ART}`,
+         `intitle:"rocking chair"${NO_ART}`],
   },
 
   /* Real bodies mid-movement, which is what you can actually direct a
@@ -381,7 +397,9 @@ const RECIPES = {
   posing: {
     wm: ['incategory:"Dancers"', '"contemporary dance"', 'intitle:gymnast',
          'intitle:"long jump"', 'intitle:"martial arts"', 'intitle:"figure skating"',
-         'intitle:breakdance'],
+         'intitle:breakdance',
+         'intitle:archery',
+         'intitle:bowling'],
     ia: ['subject:(dance OR dancers OR gymnastics)'],
   },
 
