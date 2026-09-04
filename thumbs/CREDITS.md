@@ -18,6 +18,7 @@ Commons; follow a link for that file's own licence and author.
 | `costume` | Audrey Hepburn My Fair Lady Dress | [source](https://commons.wikimedia.org/wiki/File:Audrey_Hepburn_My_Fair_Lady_Dress.jpg) |
 | `creatures` | Vincent van Gogh - Head of a skeleton with a burning cigarette - Google Art Project | [source](https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Head_of_a_skeleton_with_a_burning_cigarette_-_Google_Art_Project.jpg) |
 | `curves` | Möbius strip | [source](https://commons.wikimedia.org/wiki/File:M%C3%B6bius_strip.jpg) |
+| `decor` | Mirror writing2 | [source](https://commons.wikimedia.org/wiki/File:Mirror_writing2.jpg) |
 | `devices` | Typewriter Adler No. 7 (1) | [source](https://commons.wikimedia.org/wiki/File:Typewriter_Adler_No._7_(1).jpg) |
 | `drapery` | Drapery Tieback MET DP237894 | [source](https://commons.wikimedia.org/wiki/File:Drapery_Tieback_MET_DP237894.jpg) |
 | `earlycolor` | Edo Panorama old Tokyo color photochrom | [source](https://commons.wikimedia.org/wiki/File:Edo_Panorama_old_Tokyo_color_photochrom.jpg) |
