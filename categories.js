@@ -21,6 +21,20 @@
 
 const LOC_CAT = 'incategory:"Images from the Library of Congress"';
 
+/* Curated Commons categories come first in props and decor: category
+   membership is human-checked, so it avoids what bare title matching
+   cannot — "Urania's Mirror" is a star chart, "Long Curtain" is a
+   fortification wall, "Blind Husbands" is a 1919 film. The title queries
+   stay for reach, since a curated category holds only a few hundred
+   files.
+
+   Props and decor want photographs of objects, not paintings of them —
+   a bare noun like intitle:violin otherwise fills up with Old Master
+   violin players. */
+const NO_ART =
+  ' -intitle:painting -intitle:portrait -intitle:drawing -intitle:engraving' +
+  ' -intitle:print -intitle:sketch';
+
 /* Keeps promotional artwork out of the cinema categories — the request is
    for frames and set photography, not posters. */
 const NO_PROMO =
@@ -61,6 +75,7 @@ const CATEGORY_GROUPS = [
     label: "Photography",
     cats: [
       { id: "props", label: "Props & objects" },
+      { id: "decor", label: "Decor & set dressing" },
       { id: "costume", label: "Costume & wardrobe" },
       { id: "styling", label: "Contemporary styling", modern: true },
       { id: "posing", label: "Posing & movement", modern: true },
@@ -256,15 +271,87 @@ const RECIPES = {
      pocket watch (Louvre and Sevres museum pieces dominate them — real
      objects, but not ones you could source for a shoot). */
   props: {
-    wm: ['intitle:boots', 'intitle:sneakers', 'intitle:sunglasses',
-         'intitle:handbag', 'intitle:umbrella', 'intitle:suitcase',
-         'intitle:teacup', 'intitle:candle', 'intitle:"playing cards"',
-         'intitle:typewriter', 'intitle:bouquet', 'intitle:guitar',
-         'intitle:violin', 'intitle:"music box"', 'intitle:"model train"',
-         'intitle:balloon', 'intitle:skateboard', 'intitle:bookshelf',
-         'intitle:gramophone', 'intitle:"sewing machine"',
-         'intitle:binoculars', 'intitle:aquarium', 'intitle:scissors'],
+    wm: [
+         'incategory:"Umbrellas"',
+         'incategory:"Dolls"',
+         'incategory:"Globes"',
+         'incategory:"Candles"',
+         'incategory:"Boots"',
+         'incategory:"Teddy bears"',
+         'incategory:"Lanterns"',
+         `intitle:boots${NO_ART}`,
+         `intitle:sneakers${NO_ART}`,
+         `intitle:sunglasses${NO_ART}`,
+         `intitle:handbag${NO_ART}`,
+         `intitle:umbrella${NO_ART}`,
+         `intitle:suitcase${NO_ART}`,
+         `intitle:teacup${NO_ART}`,
+         `intitle:candle${NO_ART}`,
+         `intitle:"playing cards"${NO_ART}`,
+         `intitle:typewriter${NO_ART}`,
+         `intitle:bouquet${NO_ART}`,
+         `intitle:guitar${NO_ART}`,
+         `intitle:"music box"${NO_ART}`,
+         `intitle:"model train"${NO_ART}`,
+         `intitle:balloon${NO_ART}`,
+         `intitle:skateboard${NO_ART}`,
+         `intitle:gramophone${NO_ART}`,
+         `intitle:"sewing machine"${NO_ART}`,
+         `intitle:binoculars${NO_ART}`,
+         `intitle:scissors${NO_ART}`,
+         `intitle:doll${NO_ART}`,
+         `intitle:"teddy bear"${NO_ART}`,
+         `intitle:globe${NO_ART}`,
+         `intitle:"crystal ball"${NO_ART}`,
+         `intitle:lantern${NO_ART}`,
+         `intitle:trophy${NO_ART}`
+   ],
   },
+  /* Set dressing rather than handheld props — the split follows the Sims
+     buy-mode catalogue, which separates portable objects from the things
+     that furnish a room. Nouns are that catalogue's own subcategory names
+     (Décor > Mirrors, Rugs, Curtains, Sculptures; Lighting; Surfaces),
+     which are generic enough to search, unlike the game's item names.
+     Dropped as too thin on Commons: table lamp (154), floor lamp (50),
+     end table (24), loveseat (18), potted plant (178), garden gnome (42),
+     wind chimes (39), pinball machine (75). */
+  decor: {
+    wm: [
+         'incategory:"Mirrors"',
+         'incategory:"Rugs"',
+         'incategory:"Curtains"',
+         'incategory:"Chandeliers"',
+         'incategory:"Fountains"',
+         'incategory:"Aquariums"',
+         `intitle:mirror${NO_ART}`,
+         `intitle:rug${NO_ART}`,
+         `intitle:curtain${NO_ART}`,
+         `intitle:chandelier${NO_ART}`,
+         `intitle:sculpture${NO_ART}`,
+         `intitle:fountain${NO_ART}`,
+         `intitle:birdcage${NO_ART}`,
+         `intitle:terrarium${NO_ART}`,
+         `intitle:aquarium${NO_ART}`,
+         `intitle:"coffee table"${NO_ART}`,
+         `intitle:desk${NO_ART}`,
+         `intitle:cabinet${NO_ART}`,
+         `intitle:sofa${NO_ART}`,
+         `intitle:armchair${NO_ART}`,
+         `intitle:fireplace${NO_ART}`,
+         `intitle:staircase${NO_ART}`,
+         `intitle:"wall clock"${NO_ART}`,
+         `intitle:incense${NO_ART}`,
+         `intitle:"christmas tree"${NO_ART}`,
+         `intitle:pumpkin${NO_ART}`,
+         `intitle:flamingo${NO_ART}`,
+         `intitle:scarecrow${NO_ART}`,
+         `intitle:snowman${NO_ART}`,
+         `intitle:carousel${NO_ART}`,
+         `intitle:telescope${NO_ART}`,
+         `intitle:tent${NO_ART}`
+   ],
+  },
+
   /* Real bodies mid-movement, which is what you can actually direct a
      model into — dancers, gymnasts, martial artists, athletes at full
      extension. Rejected after sampling: intitle:sprinter (Toyota
