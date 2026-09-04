@@ -42,12 +42,14 @@ Commons; follow a link for that file's own licence and author.
 | `photos` | Vintage photograph of a man and his donkey in India (Smithsonian Institution) | [source](https://commons.wikimedia.org/wiki/File:Vintage_photograph_of_a_man_and_his_donkey_in_India_(Smithsonian_Institution).jpg) |
 | `polyhedra` | Snub-polyhedron-small-snub-icosicosidodecahedron | [source](https://commons.wikimedia.org/wiki/File:Snub-polyhedron-small-snub-icosicosidodecahedron.png) |
 | `portraits` | Portrait of the Prophet Muhammad riding the buraq steed - Google Art Project | [source](https://commons.wikimedia.org/wiki/File:Portrait_of_the_Prophet_Muhammad_riding_the_buraq_steed_-_Google_Art_Project.jpg) |
-| `poses` | Figure Study | [source](https://commons.wikimedia.org/wiki/File:Figure_Study.jpg) |
+| `poses` | Swaz 2 | [source](https://commons.wikimedia.org/wiki/File:Swaz_2.jpg) |
+| `posing` | Swaz 2 | [source](https://commons.wikimedia.org/wiki/File:Swaz_2.jpg) |
 | `posters` | Aida poster colors fixed | [source](https://commons.wikimedia.org/wiki/File:Aida_poster_colors_fixed.jpg) |
-| `props` | Tromp-l'oeil Still-Life 1664 Hoogstraeten | [source](https://commons.wikimedia.org/wiki/File:Tromp-l%27oeil_Still-Life_1664_Hoogstraeten.jpg) |
+| `props` | Boots—boots—boots—boots - geograph.org.uk - 3703701 | [source](https://commons.wikimedia.org/wiki/File:Boots%E2%80%94boots%E2%80%94boots%E2%80%94boots_-_geograph.org.uk_-_3703701.jpg) |
 | `sculpture` | Vatican StPaul Statue | [source](https://commons.wikimedia.org/wiki/File:Vatican_StPaul_Statue.jpg) |
 | `shrubs` | Hedgerow, Gamuerlston Bridge - geograph.org.uk - 143990 | [source](https://commons.wikimedia.org/wiki/File:Hedgerow,_Gamuerlston_Bridge_-_geograph.org.uk_-_143990.jpg) |
 | `street` | City of Bolzano - Photo by Giovanni Ussi - In Black and White Sepia 4 | [source](https://commons.wikimedia.org/wiki/File:City_of_Bolzano_-_Photo_by_Giovanni_Ussi_-_In_Black_and_White_Sepia_4.jpg) |
+| `styling` | Milan Fashion Week 2 | [source](https://commons.wikimedia.org/wiki/File:Milan_Fashion_Week_2.jpg) |
 | `textures` | Procedural Texture | [source](https://commons.wikimedia.org/wiki/File:Procedural_Texture.jpg) |
 | `trees` | Dawn on the great alpine road | [source](https://commons.wikimedia.org/wiki/File:Dawn_on_the_great_alpine_road.jpg) |
 | `typography` | 1882 Cincinnati Type Foundry specimen book detail p83 | [source](https://commons.wikimedia.org/wiki/File:1882_Cincinnati_Type_Foundry_specimen_book_detail_p83.png) |

@@ -60,8 +60,10 @@ const CATEGORY_GROUPS = [
   {
     label: "Photography",
     cats: [
-      { id: "props", label: "Props & still life" },
+      { id: "props", label: "Props & objects" },
       { id: "costume", label: "Costume & wardrobe" },
+      { id: "styling", label: "Contemporary styling", modern: true },
+      { id: "posing", label: "Posing & movement", modern: true },
       { id: "lighting", label: "Lighting" },
       { id: "atmosphere", label: "Atmosphere & weather", modern: true },
       { id: "biome", label: "Biome & wilderness", modern: true },
@@ -107,12 +109,14 @@ const CATEGORY_GROUPS = [
 
 const RECIPES = {
   /* ---------- Artist ---------- */
+  /* Art-school figure study. Living bodies a photographer can direct
+     from live in Posing & movement, under Photography — mixing the two
+     buried the dancers under académie drawings. */
   poses: {
-    ia: ['subject:(dance OR dancers OR gymnastics)',
-         'subject:("figure drawing" OR "human figure" OR "life drawing")'],
-    wm: ['intitle:"figure study"', 'Muybridge locomotion', '"nude study"', 'académie nude'],
+    ia: ['subject:("figure drawing" OR "human figure" OR "life drawing")'],
+    wm: ['intitle:"figure study"', 'Muybridge locomotion', '"nude study"',
+         'académie nude'],
     cma: ["type=Drawing&q=figure", "type=Drawing&q=nude"],
-    met: [{ q: "figure", medium: "Sculpture" }],
   },
   anatomy: {
     ia: ['subject:(anatomy OR osteology OR "human anatomy")'],
@@ -243,12 +247,45 @@ const RECIPES = {
   },
 
   /* ---------- Photography ---------- */
+  /* Objects you could actually put in front of a camera, not still-life
+     paintings — those live under Paintings. The noun list comes from The
+     Sims' buy-mode object taxonomy, which is a purpose-built catalogue of
+     household things, filtered to real-world items and checked for volume
+     on Commons. Rejected on inspection: "vinyl record" and "hand mirror"
+     (too thin to sustain a pool), and vase, teapot, perfume bottle and
+     pocket watch (Louvre and Sevres museum pieces dominate them — real
+     objects, but not ones you could source for a shoot). */
   props: {
-    met: [{ q: "still life", medium: "Paintings" }],
-    cma: ["type=Painting&q=still%20life"],
-    wm: ['intitle:"still life"'],
-    ia: ['subject:("still life")'],
+    wm: ['intitle:boots', 'intitle:sneakers', 'intitle:sunglasses',
+         'intitle:handbag', 'intitle:umbrella', 'intitle:suitcase',
+         'intitle:teacup', 'intitle:candle', 'intitle:"playing cards"',
+         'intitle:typewriter', 'intitle:bouquet', 'intitle:guitar',
+         'intitle:violin', 'intitle:"music box"', 'intitle:"model train"',
+         'intitle:balloon', 'intitle:skateboard', 'intitle:bookshelf',
+         'intitle:gramophone', 'intitle:"sewing machine"',
+         'intitle:binoculars', 'intitle:aquarium', 'intitle:scissors'],
   },
+  /* Real bodies mid-movement, which is what you can actually direct a
+     model into — dancers, gymnasts, martial artists, athletes at full
+     extension. Rejected after sampling: intitle:sprinter (Toyota
+     Sprinter), intitle:acrobat (Adobe Acrobat), intitle:ballet (opera
+     houses) and intitle:"yoga pose" (30 files). */
+  posing: {
+    wm: ['incategory:"Dancers"', '"contemporary dance"', 'intitle:gymnast',
+         'intitle:"long jump"', 'intitle:"martial arts"', 'intitle:"figure skating"',
+         'intitle:breakdance'],
+    ia: ['subject:(dance OR dancers OR gymnastics)'],
+  },
+
+  /* Present-day clothing as worn on real people — for scouting, renting
+     or assembling a look, rather than the historical and theatrical
+     material under Costume & wardrobe. Runway photography carries this:
+     Commons has thousands of fashion-week images. */
+  styling: {
+    wm: ['"fashion week"', '"street fashion"', 'incategory:"Street fashion"',
+         'incategory:"Fashion photography"'],
+  },
+
   /* dress as worn — stage, character, period. See the note on drapery. */
   costume: {
     wm: ['"theatrical costume"', '"costume design"'],
